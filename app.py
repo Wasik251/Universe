@@ -13,8 +13,11 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    'DATABASE_URL', 'sqlite:///' + os.path.join(BASE_DIR, 'universe.db'))
+if os.environ.get('VERCEL'):
+    db_path = 'sqlite:////tmp/universe.db'
+else:
+    db_path = 'sqlite:///' + os.path.join(BASE_DIR, 'universe.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', db_path)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
