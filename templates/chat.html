@@ -10,8 +10,13 @@
     <div class="chat-messages" id="chat-messages">
         {% for msg in messages %}
         <div class="chat-msg {{ 'user' if msg.user_id == current_user.id else 'assistant' }}">
-            <div class="chat-meta">{{ msg.user.display_name }} · {{ msg.created_at.strftime('%H:%M') }}</div>
-            <div class="chat-bubble">{{ msg.content }}</div>
+            {% if msg.user_id != current_user.id %}
+            <div class="avatar-sm chat-avatar" style="{{ avatar_style(msg.user) }}">{{ msg.user.initials() }}</div>
+            {% endif %}
+            <div class="chat-bubble chat-color-{{ msg.user_id % 5 }}">
+                <div class="chat-meta">{{ msg.user.display_name }} · {{ msg.created_at.strftime('%H:%M') }}</div>
+                {{ msg.content }}
+            </div>
         </div>
         {% else %}
         <div class="chat-msg assistant">

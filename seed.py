@@ -31,16 +31,20 @@ def seed():
 
     alice = User(username='alice', email='alice@universe.app',
                  password_hash=generate_password_hash('pass'),
-                 display_name='Alice Johnson', age=22, bio='Movie lover and CS student')
+                 display_name='Alice Johnson', age=22, date_of_birth='2004-03-12',
+                 bio='Movie lover and CS student')
     bob = User(username='bob', email='bob@universe.app',
                password_hash=generate_password_hash('pass'),
-               display_name='Bob Smith', age=24, bio='Gamer and football fan')
+               display_name='Bob Smith', age=24, date_of_birth='2002-06-05',
+               bio='Gamer and football fan')
     carol = User(username='carol', email='carol@universe.app',
                  password_hash=generate_password_hash('pass'),
-                 display_name='Carol Williams', age=21, bio='Future software engineer')
+                 display_name='Carol Williams', age=21, date_of_birth='2005-01-20',
+                 bio='Future software engineer')
     admin = User(username='admin', email='admin@universe.app',
                  password_hash=generate_password_hash('313121'),
-                 display_name='Admin', age=25, bio='UniVerse Administrator', is_admin=True)
+                 display_name='Admin', age=25, date_of_birth='2001-09-30',
+                 bio='UniVerse Administrator', is_admin=True)
     db.session.add_all([alice, bob, carol, admin])
     db.session.flush()
 

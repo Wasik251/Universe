@@ -37,10 +37,10 @@
     {% for post in posts %}
     <div class="card lfg-card">
         <div class="post-header">
-            <div class="avatar-sm">{{ post.user.initials() }}</div>
+            <div class="avatar-sm" style="{{ avatar_style(post.user) }}">{{ post.user.initials() }}</div>
             <div class="post-author-info">
                 <strong>{{ post.title }}</strong>
-                <small>{{ post.user.display_name }} · {{ post.game.title }} · {{ post.created_at.strftime('%b %d, %Y') }}</small>
+                <small>{{ post.user.display_name }} · {{ post.game.title }} · {{ post.created_at | timesince }}</small>
             </div>
         </div>
         {% if post.description %}<p>{{ post.description }}</p>{% endif %}

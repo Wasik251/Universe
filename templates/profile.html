@@ -4,7 +4,7 @@
 <div class="profile-layout">
     <div class="card profile-card">
         <div class="profile-header">
-            <div class="avatar-lg">{{ user.initials() }}</div>
+            <div class="avatar-lg" style="{{ avatar_style(user) }}">{{ user.initials() }}</div>
             <div class="profile-info">
                 <h1>{{ user.display_name }} {% if user.is_admin %}<span class="admin-badge">ADMIN</span>{% endif %}</h1>
                 <p class="text-muted">@{{ user.username }}</p>

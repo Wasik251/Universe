@@ -11,6 +11,18 @@ follows = db.Table(
 )
 
 
+AVATAR_PALETTES = [
+    ('#e94560', '#ff8a5c'),
+    ('#4a6cff', '#9b5cff'),
+    ('#00d4aa', '#00a8ff'),
+    ('#ffb020', '#ff4d6d'),
+    ('#9b5cff', '#e94560'),
+    ('#00a8ff', '#00d4aa'),
+    ('#ff6b8a', '#ffd166'),
+    ('#10b981', '#00d4aa'),
+]
+
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
@@ -18,6 +30,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(200), nullable=True)
     display_name = db.Column(db.String(80), nullable=False)
     age = db.Column(db.Integer, default=0)
+    date_of_birth = db.Column(db.String(10), default='')
     bio = db.Column(db.String(500), default='')
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -37,6 +50,10 @@ class User(UserMixin, db.Model):
         words = self.display_name.split()
         return ''.join(w[0].upper() for w in words[:2]) or self.username[0].upper()
 
+    def avatar_colors(self):
+        pal = AVATAR_PALETTES[self.id % len(AVATAR_PALETTES)]
+        return pal[0], pal[1]
+
 
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -45,9 +62,20 @@ class Post(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     author = db.relationship('User', backref=db.backref('posts', lazy='dynamic'))
     likes = db.relationship('PostLike', backref='post', lazy='dynamic', cascade='all, delete-orphan')
+    reactions = db.relationship('PostReaction', backref='post', lazy='dynamic', cascade='all, delete-orphan')
 
     def like_count(self):
         return self.likes.count()
+
+
+class PostReaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    emoji = db.Column(db.String(10), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User')
+    __table_args__ = (db.UniqueConstraint('post_id', 'user_id', 'emoji'),)
 
 
 class PostLike(db.Model):

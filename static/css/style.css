@@ -371,3 +371,200 @@ select.form-input { cursor: pointer; }
     .welcome-card { padding: 2rem 1.5rem; }
     .welcome-logo { font-size: 2.2rem; }
 }
+
+/* ================================================================
+   COLORFUL UI OVERHAUL
+   ================================================================ */
+
+/* ANIMATED AURORA BACKGROUND */
+@keyframes aurora {
+    0%   { background-position: 0% 0%, 100% 100%, 50% 50%; }
+    50%  { background-position: 100% 100%, 0% 0%, 80% 20%; }
+    100% { background-position: 0% 0%, 100% 100%, 50% 50%; }
+}
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+body {
+    background:
+        radial-gradient(ellipse at 10% 10%, rgba(233,69,96,0.18) 0%, transparent 50%),
+        radial-gradient(ellipse at 90% 20%, rgba(74,108,255,0.18) 0%, transparent 50%),
+        radial-gradient(ellipse at 20% 90%, rgba(0,212,170,0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(155,92,255,0.18) 0%, transparent 50%),
+        #0b0b1a;
+    background-attachment: fixed;
+}
+
+::selection { background: var(--accent); color: #fff; }
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--accent), var(--accent-3)); border-radius: 8px; }
+
+/* COLORFUL NAVBAR */
+.navbar {
+    background: rgba(13, 13, 32, 0.85);
+    border-bottom: 2px solid transparent;
+    border-image: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-4), var(--accent-3), var(--accent)) 1;
+}
+.nav-links a {
+    background: linear-gradient(90deg, rgba(233,69,96,0.12), rgba(74,108,255,0.12));
+    border: 1px solid rgba(255,255,255,0.06);
+    margin: 0 0.1rem;
+}
+.nav-links a:hover {
+    background: linear-gradient(90deg, rgba(233,69,96,0.5), rgba(155,92,255,0.5));
+    box-shadow: 0 4px 14px rgba(155,92,255,0.35);
+    transform: translateY(-1px);
+}
+.nav-logout { color: var(--danger) !important; border-color: rgba(255,77,109,0.4) !important; }
+
+/* RAINBOW TEXT + SECTION HEADERS */
+.section-header h1 {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-4), var(--accent-3), var(--accent));
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientShift 6s linear infinite;
+    display: inline-block;
+}
+
+/* GRADIENT CARD BORDERS */
+.card { position: relative; }
+.card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(233,69,96,0.5), rgba(74,108,255,0.3), rgba(0,212,170,0.5), rgba(155,92,255,0.4));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+.card:hover { transform: translateY(-3px); box-shadow: 0 10px 34px rgba(155,92,255,0.15); }
+
+/* FEATURE CHIPS (welcome) */
+.feature-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-bottom: 1.5rem; }
+.chip {
+    padding: 0.4rem 0.9rem;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+    animation: floatY 4s ease-in-out infinite;
+}
+.chip-1 { background: linear-gradient(90deg, #ff6b8a, #e94560); animation-delay: 0s; }
+.chip-2 { background: linear-gradient(90deg, #9b5cff, #4a6cff); animation-delay: 0.3s; }
+.chip-3 { background: linear-gradient(90deg, #00d4aa, #00a8ff); animation-delay: 0.6s; }
+.chip-4 { background: linear-gradient(90deg, #ffb020, #ff4d6d); animation-delay: 0.9s; }
+.chip-5 { background: linear-gradient(90deg, #ffd166, #ff6b8a); animation-delay: 1.2s; }
+.chip-6 { background: linear-gradient(90deg, #10b981, #00d4aa); animation-delay: 1.5s; }
+
+/* RAINBOW BUTTON */
+.btn-rainbow {
+    background: linear-gradient(90deg, #e94560, #ffb020, #00d4aa, #4a6cff, #9b5cff, #e94560);
+    background-size: 300% 100%;
+    animation: gradientShift 4s linear infinite;
+    box-shadow: 0 4px 18px rgba(233,69,96,0.4);
+    color: #fff;
+}
+.btn-rainbow:hover { transform: translateY(-2px) scale(1.01); box-shadow: 0 8px 26px rgba(155,92,255,0.5); text-decoration: none; }
+
+/* FEED POST ACCENTS */
+.post { border-left: 4px solid var(--accent); }
+.post-accent-0 { border-left-color: #e94560; }
+.post-accent-1 { border-left-color: #4a6cff; }
+.post-accent-2 { border-left-color: #00d4aa; }
+.post-accent-3 { border-left-color: #ffb020; }
+.post-accent-4 { border-left-color: #9b5cff; }
+.post-accent-5 { border-left-color: #ff6b8a; }
+.post-accent-0:hover { box-shadow: 0 8px 30px rgba(233,69,96,0.2); }
+.post-accent-1:hover { box-shadow: 0 8px 30px rgba(74,108,255,0.2); }
+.post-accent-2:hover { box-shadow: 0 8px 30px rgba(0,212,170,0.2); }
+.post-accent-3:hover { box-shadow: 0 8px 30px rgba(255,176,32,0.2); }
+.post-accent-4:hover { box-shadow: 0 8px 30px rgba(155,92,255,0.2); }
+.post-accent-5:hover { box-shadow: 0 8px 30px rgba(255,107,138,0.2); }
+
+/* POST CREATE FOOTER + CHAR COUNT */
+.post-create-footer { display: flex; justify-content: space-between; align-items: center; }
+.char-count { color: var(--text-muted); font-size: 0.8rem; }
+.char-count span { color: var(--accent-4); font-weight: 700; }
+
+/* HEART POP ANIMATION */
+@keyframes heartPop {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.6) rotate(-10deg); }
+    70% { transform: scale(0.9); }
+    100% { transform: scale(1); }
+}
+.heart { display: inline-block; transition: color 0.2s; }
+.heart-pop { animation: heartPop 0.5s ease; }
+.like-btn:hover .heart { color: var(--accent); }
+.like-btn.liked .heart { color: #ff4d6d; }
+
+/* REACTIONS */
+.post-reactions {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+    padding-top: 0.6rem;
+    margin-top: 0.6rem;
+    border-top: 1px dashed var(--border);
+}
+.reaction-btn {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-family: inherit;
+    transition: all 0.2s;
+}
+.reaction-btn span { font-weight: 700; }
+.reaction-btn:hover { transform: translateY(-2px) scale(1.08); border-color: var(--accent); box-shadow: 0 4px 12px rgba(233,69,96,0.3); }
+.reaction-btn.reacted { background: linear-gradient(90deg, rgba(233,69,96,0.35), rgba(155,92,255,0.35)); border-color: var(--accent); color: #fff; }
+.share-btn { font-size: 0.85rem; }
+
+/* CHAT COLOR VARIANTS */
+.chat-msg { align-items: flex-start; gap: 0.5rem; }
+.chat-avatar { margin-top: 0.15rem; }
+.chat-bubble { border-left: 3px solid var(--accent); }
+.chat-color-0 .chat-bubble { border-left-color: #e94560; }
+.chat-color-1 .chat-bubble { border-left-color: #4a6cff; }
+.chat-color-2 .chat-bubble { border-left-color: #00d4aa; }
+.chat-color-3 .chat-bubble { border-left-color: #ffb020; }
+.chat-color-4 .chat-bubble { border-left-color: #9b5cff; }
+.chat-msg.user .chat-bubble {
+    background: linear-gradient(135deg, #e94560, #9b5cff);
+    border-left-color: #ffd166;
+}
+.chat-messages { background: rgba(21,21,50,0.7); }
+
+/* GRADIENT STATS */
+.stat-box { background: linear-gradient(160deg, var(--bg-input), rgba(155,92,255,0.12)); }
+
+/* PROFILE CARD */
+.profile-card {
+    background: linear-gradient(160deg, rgba(26,26,62,0.95), rgba(155,92,255,0.12));
+}
+.admin-badge { box-shadow: 0 0 12px rgba(233,69,96,0.5); }
+
+/* GLOWING BUTTONS */
+.btn-primary, .btn-secondary, .btn-accent { background-size: 200% 100%; animation: gradientShift 5s linear infinite; }
+
+/* AVATAR SHINE */
+.avatar-sm, .avatar-lg { position: relative; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+.avatar-sm::after, .avatar-lg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%);
+    background-size: 200% 100%;
+    animation: shimmer 3s linear infinite;
+}

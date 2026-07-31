@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from models import (db, User, Post, PostLike, ChatMessage, Movie, MovieReview, Watchlist, Game,
+from models import (db, User, Post, PostLike, PostReaction, ChatMessage, Movie, MovieReview, Watchlist, Game,
                     GameReview, UserGameLibrary, LfgPost, Department, Course,
                     AcademicNote, PastQuestion, MCQ, DiscussionThread, DiscussionReply)
 from seed import seed
@@ -46,10 +46,18 @@ def register():
         email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
         confirm = request.form.get('confirm_password', '')
+        dob = request.form.get('dob', '').strip()
+
+        dob_date = None
         try:
-            age = int(request.form.get('age', 0) or 0)
+            dob_date = datetime.strptime(dob, '%Y-%m-%d')
         except ValueError:
-            age = 0
+            pass
+
+        age = 0
+        if dob_date:
+            today = datetime.utcnow()
+            age = today.year - dob_date.year - ((today.month, today.day) < (dob_date.month, dob_date.day))
 
         errors = []
         if not username or not display or not email:
@@ -64,8 +72,10 @@ def register():
             errors.append('Password must be at least 4 characters')
         if password != confirm:
             errors.append('Passwords do not match')
-        if age < 10:
-            errors.append('You must be at least 10 years old to join UniVerse')
+        if not dob_date:
+            errors.append('Please enter your date of birth')
+        elif age < 10:
+            errors.append('You must be at least 10 years old to join UniVerse (based on your date of birth)')
 
         if errors:
             for e in errors:
@@ -73,7 +83,7 @@ def register():
         else:
             user = User(username=username, email=email,
                         password_hash=generate_password_hash(password),
-                        display_name=display, age=age)
+                        display_name=display, age=age, date_of_birth=dob)
             db.session.add(user)
             db.session.commit()
             login_user(user)
@@ -99,7 +109,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 
 # ---------- LANDING ----------
@@ -150,6 +160,21 @@ def delete_post(post_id):
         db.session.delete(post)
         db.session.commit()
         flash('Post deleted', 'success')
+    return redirect(request.referrer or url_for('feed'))
+
+
+@app.route('/post/<int:post_id>/react', methods=['POST'])
+@login_required
+def react_post(post_id):
+    emoji = request.form.get('emoji', '').strip()
+    post = db.session.get(Post, post_id)
+    if post and emoji:
+        existing = PostReaction.query.filter_by(post_id=post_id, user_id=current_user.id, emoji=emoji).first()
+        if existing:
+            db.session.delete(existing)
+        else:
+            db.session.add(PostReaction(post_id=post_id, user_id=current_user.id, emoji=emoji))
+        db.session.commit()
     return redirect(request.referrer or url_for('feed'))
 
 
@@ -520,6 +545,38 @@ def manage_delete_post(post_id):
     return redirect(url_for('manage'))
 
 
+@app.route('/manage/user/<int:user_id>/delete', methods=['POST'])
+@login_required
+def manage_delete_user(user_id):
+    if not current_user.is_admin:
+        flash('Admin access required', 'error')
+        return redirect(url_for('manage'))
+    target = db.session.get(User, user_id)
+    if not target:
+        flash('User not found', 'error')
+    elif target.id == current_user.id:
+        flash('You cannot delete your own account', 'error')
+    else:
+        username = target.username
+        Post.query.filter_by(user_id=user_id).delete()
+        PostLike.query.filter_by(user_id=user_id).delete()
+        PostReaction.query.filter_by(user_id=user_id).delete()
+        ChatMessage.query.filter_by(user_id=user_id).delete()
+        MovieReview.query.filter_by(user_id=user_id).delete()
+        GameReview.query.filter_by(user_id=user_id).delete()
+        UserGameLibrary.query.filter_by(user_id=user_id).delete()
+        Watchlist.query.filter_by(user_id=user_id).delete()
+        LfgPost.query.filter_by(user_id=user_id).delete()
+        DiscussionThread.query.filter_by(author_id=user_id).delete()
+        DiscussionReply.query.filter_by(author_id=user_id).delete()
+        AcademicNote.query.filter_by(uploaded_by=user_id).delete()
+        PastQuestion.query.filter_by(uploaded_by=user_id).delete()
+        db.session.delete(target)
+        db.session.commit()
+        flash(f'User "{username}" deleted', 'success')
+    return redirect(url_for('manage'))
+
+
 @app.route('/manage/game/add', methods=['POST'])
 @login_required
 def manage_add_game():
@@ -563,11 +620,38 @@ def _manage_panel():
 
 
 # ---------- TEMPLATE HELPERS ----------
+@app.template_filter('timesince')
+def timesince(dt):
+    diff = datetime.utcnow() - dt
+    if diff.days >= 365:
+        return f'{diff.days // 365}y ago'
+    if diff.days >= 30:
+        return f'{diff.days // 30}mo ago'
+    if diff.days >= 1:
+        return f'{diff.days}d ago'
+    hours = diff.seconds // 3600
+    if hours >= 1:
+        return f'{hours}h ago'
+    mins = diff.seconds // 60
+    if mins >= 1:
+        return f'{mins}m ago'
+    return 'just now'
+
+
 @app.context_processor
 def inject_globals():
     def can_like(post):
         return PostLike.query.filter_by(post_id=post.id, user_id=current_user.id).first() is not None if current_user.is_authenticated else False
-    return {'current_year': datetime.utcnow().year, 'can_like': can_like}
+
+    def reacted(post, emoji):
+        return PostReaction.query.filter_by(post_id=post.id, user_id=current_user.id, emoji=emoji).first() is not None if current_user.is_authenticated else False
+
+    def avatar_style(user):
+        c1, c2 = user.avatar_colors()
+        return f'background:linear-gradient(135deg,{c1},{c2});'
+
+    return {'current_year': datetime.utcnow().year, 'can_like': can_like,
+            'reacted': reacted, 'avatar_style': avatar_style}
 
 
 if __name__ == '__main__':

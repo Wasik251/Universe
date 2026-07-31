@@ -4,23 +4,26 @@
 <div class="feed-layout">
     <div class="card post-create">
         <div class="post-create-header">
-            <div class="avatar-sm">{{ current_user.initials() }}</div>
+            <div class="avatar-sm" style="{{ avatar_style(current_user) }}">{{ current_user.initials() }}</div>
             <h3>What's happening?</h3>
         </div>
         <form method="post" action="{{ url_for('create_post') }}">
-            <textarea name="content" rows="3" placeholder="Share something with the community..." required></textarea>
-            <button type="submit" class="btn btn-primary">Post</button>
+            <textarea name="content" id="post-content" rows="3" maxlength="500" placeholder="Share something with the community..." required></textarea>
+            <div class="post-create-footer">
+                <span class="char-count"><span id="char-count">0</span>/500</span>
+                <button type="submit" class="btn btn-primary" onclick="playSound()">Post</button>
+            </div>
         </form>
     </div>
 
     <div class="posts-feed">
         {% for post in posts %}
-        <div class="card post">
+        <div class="card post post-accent-{{ loop.index0 % 6 }}">
             <div class="post-header">
-                <div class="avatar-sm">{{ post.author.initials() }}</div>
+                <div class="avatar-sm" style="{{ avatar_style(post.author) }}">{{ post.author.initials() }}</div>
                 <div class="post-author-info">
                     <a href="{{ url_for('profile_view', user_id=post.author.id) }}">{{ post.author.display_name }}</a>
-                    <small>@{{ post.author.username }} · {{ post.created_at.strftime('%b %d, %Y') }}</small>
+                    <small>@{{ post.author.username }} · {{ post.created_at | timesince }}</small>
                 </div>
             </div>
             <div class="post-content">
@@ -28,15 +31,27 @@
             </div>
             <div class="post-actions">
                 <form method="post" action="{{ url_for('like_post', post_id=post.id) }}">
-                    <button type="submit" class="btn-action {{ 'liked' if can_like(post) }}">
-                        {{ '♥' if can_like(post) else '♡' }} {{ post.like_count() }} Likes
+                    <button type="submit" class="btn-action like-btn {{ 'liked' if can_like(post) }}" onclick="playSound()">
+                        <span class="heart {{ 'heart-pop' if can_like(post) }}">{{ '♥' if can_like(post) else '♡' }}</span>
+                        {{ post.like_count() }} Likes
                     </button>
                 </form>
+                <span class="btn-action share-btn" onclick="sharePost({{ post.id }})">🔗 Share</span>
                 {% if post.user_id == current_user.id or current_user.is_admin %}
                 <form method="post" action="{{ url_for('delete_post', post_id=post.id) }}">
-                    <button type="submit" class="btn-action btn-delete">🗑 Delete</button>
+                    <button type="submit" class="btn-action btn-delete" onclick="playSound()">🗑 Delete</button>
                 </form>
                 {% endif %}
+            </div>
+            <div class="post-reactions">
+                {% for emoji in ['❤️','🔥','😂','👍','🎮','📚'] %}
+                <form method="post" action="{{ url_for('react_post', post_id=post.id) }}">
+                    <input type="hidden" name="emoji" value="{{ emoji }}">
+                    <button type="submit" class="reaction-btn {{ 'reacted' if reacted(post, emoji) }}" onclick="playSound()">
+                        {{ emoji }} <span>{{ post.reactions.filter_by(emoji=emoji).count() }}</span>
+                    </button>
+                </form>
+                {% endfor %}
             </div>
         </div>
         {% else %}
@@ -46,4 +61,25 @@
         {% endfor %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const ta = document.getElementById('post-content');
+const counter = document.getElementById('char-count');
+if (ta && counter) {
+    ta.addEventListener('input', () => { counter.textContent = ta.value.length; });
+}
+function sharePost(id) {
+    const url = window.location.origin + '/post/' + id + '/like';
+    const dummy = document.createElement('textarea');
+    dummy.value = 'Check out UniVerse: ' + window.location.origin + '/feed';
+    document.body.appendChild(dummy);
+    dummy.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(dummy);
+    playSound();
+    alert('Link copied! Share it with your friends.');
+}
+</script>
 {% endblock %}

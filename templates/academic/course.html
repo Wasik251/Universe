@@ -117,7 +117,6 @@ function revealAnswer(id, answer) {
     const el = document.getElementById('answer-' + id);
     el.style.display = 'block';
     el.textContent = 'Answer: ' + el.getAttribute('data-answer');
-    el.setAttribute('data-answer', el.getAttribute('data-answer') || '{{ mcq.correct_answer }}');
 }
 document.querySelectorAll('.mcq-answer').forEach(el => {
     const id = el.id.split('-')[1];

@@ -26,7 +26,7 @@
             <tr>
                 <td>
                     <div class="post-header" style="margin-bottom:0;">
-                        <div class="avatar-sm">{{ user.initials() }}</div>
+                        <div class="avatar-sm" style="{{ avatar_style(user) }}">{{ user.initials() }}</div>
                         <a href="{{ url_for('profile_view', user_id=user.id) }}" style="font-weight:600;">{{ user.display_name }}</a>
                     </div>
                 </td>
