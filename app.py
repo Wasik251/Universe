@@ -485,6 +485,60 @@ def chat_send():
     return redirect(url_for('chat'))
 
 
+# ---------- AI ASSISTANT ----------
+@app.route('/assistant')
+@login_required
+def assistant():
+    return render_template('assistant.html', messages=session.get('chat_history', []))
+
+
+@app.route('/assistant/send', methods=['POST'])
+@login_required
+def assistant_send():
+    user_msg = request.json.get('message', '').strip() if request.is_json else request.form.get('message', '').strip()
+    if not user_msg:
+        return jsonify(error='Empty message'), 400
+
+    history = session.get('chat_history', [])
+    history.append({'role': 'user', 'content': user_msg})
+    session['chat_history'] = history[-50:]
+
+    reply = _get_gemini_reply(history)
+    history.append({'role': 'assistant', 'content': reply})
+    session['chat_history'] = history[-50:]
+
+    if request.is_json:
+        return jsonify(reply=reply)
+    return redirect(url_for('assistant'))
+
+
+def _get_gemini_reply(history):
+    api_key = os.environ.get('GEMINI_API_KEY')
+    if not api_key:
+        return ("I'm running in demo mode right now. Add your free Gemini API key as the "
+                "GEMINI_API_KEY environment variable and restart the app to enable real AI replies. "
+                "Get a key here: https://aistudio.google.com/apikey")
+    try:
+        from google import genai
+        from google.genai import types
+        client = genai.Client(api_key=api_key)
+        system = (
+            "You are UniVerse Assistant, a helpful AI assistant for UniVerse, "
+            "a student platform with a social feed, movies, games, and an academic hub. "
+            "Help students with their courses, homework, exam prep, movies, games, and anything else. "
+            "Be friendly, concise, and helpful."
+        )
+        contents = [m['content'] for m in history]
+        response = client.models.generate_content(
+            model='gemini-2.0-flash',
+            config=types.GenerateContentConfig(system_instruction=system),
+            contents=contents,
+        )
+        return response.text.strip()
+    except Exception as e:
+        return f"I couldn't reach the AI service right now. Check that GEMINI_API_KEY is set correctly. ({e})"
+
+
 # ---------- ADMIN / MANAGE ----------
 @app.route('/manage', methods=['GET', 'POST'])
 @login_required

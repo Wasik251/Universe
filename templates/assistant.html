@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}AI Assistant - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>UniVerse Assistant</h1>
+    <span class="badge">🤖 AI</span>
+</div>
+<p class="text-muted" style="margin-bottom:1rem;">Your AI study buddy — ask about courses, homework, exams, movies, or anything else.</p>
+
+<div class="chat-container">
+    <div class="chat-messages" id="chat-messages">
+        <div class="chat-msg assistant">
+            <div class="avatar-sm chat-avatar" style="background:linear-gradient(135deg,#9b5cff,#00a8ff);">🤖</div>
+            <div class="chat-bubble">
+                <div class="chat-meta">UniVerse Assistant</div>
+                Hi {{ current_user.display_name }}! Ask me anything about your courses, upcoming exams, or what to watch tonight.
+            </div>
+        </div>
+        {% for msg in messages %}
+        <div class="chat-msg {{ 'user' if msg.role == 'user' else 'assistant' }}">
+            {% if msg.role != 'user' %}
+            <div class="avatar-sm chat-avatar" style="background:linear-gradient(135deg,#9b5cff,#00a8ff);">🤖</div>
+            {% endif %}
+            <div class="chat-bubble {{ 'chat-color-' ~ loop.index0 % 5 }}">
+                <div class="chat-meta">{{ current_user.display_name if msg.role == 'user' else 'UniVerse Assistant' }}</div>
+                {{ msg.content }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    <div class="chat-input-row">
+        <input type="text" id="chat-input" class="form-input" placeholder="Ask the AI assistant..." autocomplete="off">
+        <button class="btn btn-primary" id="chat-send" onclick="playSound()">Send</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const messagesEl = document.getElementById('chat-messages');
+const inputEl = document.getElementById('chat-input');
+const sendBtn = document.getElementById('chat-send');
+messagesEl.scrollTop = messagesEl.scrollHeight;
+
+async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+    inputEl.value = '';
+
+    const userDiv = document.createElement('div');
+    userDiv.className = 'chat-msg user';
+    userDiv.innerHTML = '<div class="chat-bubble"></div>';
+    userDiv.querySelector('.chat-bubble').textContent = text;
+    messagesEl.appendChild(userDiv);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    const botDiv = document.createElement('div');
+    botDiv.className = 'chat-msg assistant';
+    botDiv.innerHTML = '<div class="avatar-sm chat-avatar" style="background:linear-gradient(135deg,#9b5cff,#00a8ff);">🤖</div><div class="chat-bubble"><div class="chat-meta">UniVerse Assistant</div><span class="typing">thinking...</span></div>';
+    messagesEl.appendChild(botDiv);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    try {
+        const res = await fetch('/assistant/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        botDiv.querySelector('.chat-bubble').lastChild.textContent = data.reply;
+    } catch (e) {
+        botDiv.querySelector('.chat-bubble').lastChild.textContent = 'Something went wrong. Try again.';
+    }
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+sendBtn.addEventListener('click', sendMessage);
+inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+</script>
+{% endblock %}

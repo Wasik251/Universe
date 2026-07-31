@@ -10,6 +10,7 @@ UniVerse is an all-in-one student platform built with Flask. Share short posts, 
 - **Authentication** — sign up with name, username, email, **date of birth** (system checks 10+ eligibility), password; log in with username or email; **stay logged in** (permanent sessions, remember me)
 - **Feed** — short posts with likes, **emoji reactions**, share links, live timestamps; delete your own posts
 - **Chat** — live community chat with auto-refresh and colorful bubbles
+- **AI Assistant** — Gemini-powered study buddy (🤖 in the navbar); asks questions with memory
 - **Movies** — browse, search, review, and watchlist
 - **Games** — browse, search, review, game library with statuses, LFG (Looking For Group)
 - **Academic Hub** — departments, courses, study notes, past questions, MCQs, discussion threads
@@ -37,12 +38,26 @@ Open http://localhost:8080
 | `bob` | `pass` | Member |
 | `admin` | `313121` | Admin |
 
+## Enable the AI Assistant
+
+The AI Assistant (🤖) needs a free Gemini API key:
+
+1. Go to https://aistudio.google.com/apikey and sign in with your Google account
+2. Click **Create API key** → copy the key (starts with `AIza...`)
+3. Add it as the `GEMINI_API_KEY` environment variable (see below)
+4. Redeploy / restart the app
+
+Without a key, the assistant replies in demo mode with instructions instead of real AI answers.
+
 ## Deploy on Vercel
 
 The repo includes `vercel.json` and `api/index.py` for serverless deployment.
 
 1. Import the repo at https://vercel.com
-2. Add env var `SECRET_KEY` (any random string)
+2. Add env vars in **Vercel → Settings → Environment Variables** (select All environments):
+   - `SECRET_KEY` — any random string
+   - `GEMINI_API_KEY` — your Gemini key (for the AI Assistant)
+   - `DATABASE_URL` — Postgres connection string (for persistent accounts)
 3. **Required for accounts to persist and stay logged in** — add a persistent database:
 
    - Create a free Postgres database at https://neon.tech (or https://supabase.com)

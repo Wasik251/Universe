@@ -419,6 +419,8 @@ body {
     transform: translateY(-1px);
 }
 .nav-logout { color: var(--danger) !important; border-color: rgba(255,77,109,0.4) !important; }
+.nav-ai { color: #ffd166 !important; border-color: rgba(255,176,32,0.4) !important; }
+.typing { color: var(--text-muted); font-style: italic; }
 
 /* RAINBOW TEXT + SECTION HEADERS */
 .section-header h1 {
