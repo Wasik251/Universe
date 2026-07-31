@@ -31,5 +31,17 @@
 <script>
 const messagesEl = document.getElementById('chat-messages');
 if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+setInterval(() => {
+    fetch(window.location.href)
+        .then(r => r.text())
+        .then(html => {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const newMsg = doc.getElementById('chat-messages');
+            if (newMsg && messagesEl && newMsg.innerHTML !== messagesEl.innerHTML) {
+                messagesEl.innerHTML = newMsg.innerHTML;
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
+        }).catch(() => {});
+}, 5000);
 </script>
 {% endblock %}

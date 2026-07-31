@@ -8,6 +8,12 @@
         <a href="{{ url_for('lfg') }}" class="btn btn-ghost btn-sm">LFG</a>
     </div>
 </div>
+
+<form method="get" action="{{ url_for('games') }}" class="search-form">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search games by title or genre...">
+    <button type="submit" class="btn btn-secondary btn-sm" onclick="playSound()">Search</button>
+</form>
+
 <div class="grid">
     {% for game in games %}
     <div class="card media-card">

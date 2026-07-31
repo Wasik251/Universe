@@ -6,6 +6,11 @@
     <span class="badge">{{ total }} signed up</span>
 </div>
 
+<form method="get" action="{{ url_for('users') }}" class="search-form">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search users by name or username...">
+    <button type="submit" class="btn btn-secondary btn-sm" onclick="playSound()">Search</button>
+</form>
+
 <div class="card">
     <table class="users-table">
         <thead>

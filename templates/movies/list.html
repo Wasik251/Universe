@@ -5,6 +5,12 @@
     <h1>Movies</h1>
     <a href="{{ url_for('watchlist') }}" class="btn btn-ghost btn-sm">My Watchlist</a>
 </div>
+
+<form method="get" action="{{ url_for('movies') }}" class="search-form">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search movies by title or genre...">
+    <button type="submit" class="btn btn-secondary btn-sm" onclick="playSound()">Search</button>
+</form>
+
 <div class="grid">
     {% for movie in movies %}
     <div class="card media-card">

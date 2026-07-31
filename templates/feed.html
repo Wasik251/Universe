@@ -32,6 +32,11 @@
                         {{ '♥' if can_like(post) else '♡' }} {{ post.like_count() }} Likes
                     </button>
                 </form>
+                {% if post.user_id == current_user.id or current_user.is_admin %}
+                <form method="post" action="{{ url_for('delete_post', post_id=post.id) }}">
+                    <button type="submit" class="btn-action btn-delete">🗑 Delete</button>
+                </form>
+                {% endif %}
             </div>
         </div>
         {% else %}

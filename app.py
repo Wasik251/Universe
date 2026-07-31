@@ -142,13 +142,28 @@ def like_post(post_id):
     return redirect(request.referrer or url_for('feed'))
 
 
+@app.route('/post/<int:post_id>/delete', methods=['POST'])
+@login_required
+def delete_post(post_id):
+    post = db.session.get(Post, post_id)
+    if post and (post.user_id == current_user.id or current_user.is_admin):
+        db.session.delete(post)
+        db.session.commit()
+        flash('Post deleted', 'success')
+    return redirect(request.referrer or url_for('feed'))
+
+
 # ---------- MOVIES ----------
 @app.route('/movies')
 @login_required
 def movies():
-    movies = Movie.query.all()
+    query = request.args.get('q', '').strip()
+    movies = Movie.query
+    if query:
+        movies = movies.filter(Movie.title.ilike(f'%{query}%') | Movie.genre.ilike(f'%{query}%'))
+    movies = movies.order_by(Movie.title.asc()).all()
     watchlist_ids = {w.movie_id for w in Watchlist.query.filter_by(user_id=current_user.id)}
-    return render_template('movies/list.html', movies=movies, watchlist_ids=watchlist_ids)
+    return render_template('movies/list.html', movies=movies, watchlist_ids=watchlist_ids, query=query)
 
 
 @app.route('/movies/<int:movie_id>')
@@ -197,8 +212,12 @@ def watchlist():
 @app.route('/games')
 @login_required
 def games():
-    games = Game.query.all()
-    return render_template('games/list.html', games=games)
+    query = request.args.get('q', '').strip()
+    games = Game.query
+    if query:
+        games = games.filter(Game.title.ilike(f'%{query}%') | Game.genre.ilike(f'%{query}%'))
+    games = games.order_by(Game.title.asc()).all()
+    return render_template('games/list.html', games=games, query=query)
 
 
 @app.route('/games/<int:game_id>')
@@ -370,8 +389,12 @@ def reply_thread(thread_id):
 @app.route('/users')
 @login_required
 def users():
-    users = User.query.order_by(User.created_at.asc()).all()
-    return render_template('users.html', users=users, total=len(users))
+    query = request.args.get('q', '').strip()
+    users = User.query
+    if query:
+        users = users.filter(User.username.ilike(f'%{query}%') | User.display_name.ilike(f'%{query}%'))
+    users = users.order_by(User.created_at.asc()).all()
+    return render_template('users.html', users=users, total=len(users), query=query)
 
 
 @app.route('/profile')
@@ -497,11 +520,46 @@ def manage_delete_post(post_id):
     return redirect(url_for('manage'))
 
 
+@app.route('/manage/game/add', methods=['POST'])
+@login_required
+def manage_add_game():
+    if not current_user.is_admin:
+        flash('Admin access required', 'error')
+        return redirect(url_for('manage'))
+    title = request.form.get('title', '').strip()
+    genre = request.form.get('genre', '').strip()
+    platform = request.form.get('platform', '').strip()
+    rating = request.form.get('rating', type=float, default=0)
+    description = request.form.get('description', '').strip()
+    image_url = request.form.get('image_url', '').strip()
+    if title:
+        db.session.add(Game(title=title, genre=genre or 'Unknown', platform=platform or 'Unknown',
+                            rating=rating, description=description, image_url=image_url))
+        db.session.commit()
+        flash(f'Game "{title}" added!', 'success')
+    return redirect(url_for('manage'))
+
+
+@app.route('/manage/game/<int:game_id>/delete', methods=['POST'])
+@login_required
+def manage_delete_game(game_id):
+    if not current_user.is_admin:
+        flash('Admin access required', 'error')
+        return redirect(url_for('manage'))
+    game = db.session.get(Game, game_id)
+    if game:
+        db.session.delete(game)
+        db.session.commit()
+        flash(f'Game "{game.title}" deleted', 'success')
+    return redirect(url_for('manage'))
+
+
 def _manage_panel():
     movies = Movie.query.all()
+    games = Game.query.all()
     users = User.query.all()
     posts = Post.query.order_by(Post.created_at.desc()).all()
-    return render_template('manage.html', locked=False, movies=movies, users=users, posts=posts)
+    return render_template('manage.html', locked=False, movies=movies, games=games, users=users, posts=posts)
 
 
 # ---------- TEMPLATE HELPERS ----------
