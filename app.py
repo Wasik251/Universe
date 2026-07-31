@@ -532,12 +532,24 @@ def _get_gemini_reply(history):
             "Be friendly, concise, and helpful."
         )
         contents = [m['content'] for m in history]
-        response = client.models.generate_content(
-            model='gemini-2.0-flash',
-            config=types.GenerateContentConfig(system_instruction=system),
-            contents=contents,
-        )
-        return response.text.strip()
+        errors = []
+        for model in ('gemini-2.5-flash', 'gemini-1.5-flash', 'gemini-2.0-flash'):
+            try:
+                response = client.models.generate_content(
+                    model=model,
+                    config=types.GenerateContentConfig(system_instruction=system),
+                    contents=contents,
+                )
+                return response.text.strip()
+            except Exception as e:
+                errors.append(f'{model}: {e}')
+        last = errors[-1]
+        if 'RESOURCE_EXHAUSTED' in last or '429' in last:
+            return ("The free AI quota is currently used up (Gemini free tier). "
+                    "Please try again in a few minutes — free limits reset daily. "
+                    "If it keeps happening, create a fresh API key at "
+                    "https://aistudio.google.com/apikey (a new project gets a new quota).")
+        return f"I couldn't reach the AI service right now. Check that GEMINI_API_KEY is set correctly. ({last})"
     except Exception as e:
         return f"I couldn't reach the AI service right now. Check that GEMINI_API_KEY is set correctly. ({e})"
 
