@@ -19,7 +19,10 @@
 {% else %}
 <div class="section-header">
     <h1>Manage Center</h1>
-    <span class="badge">Admin</span>
+    <div>
+        <span class="badge">Admin</span>
+        <a href="{{ url_for('manage_database') }}" class="btn btn-secondary btn-sm">🗄 Database</a>
+    </div>
 </div>
 
 <div class="manage-grid">

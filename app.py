@@ -1,5 +1,6 @@
 import os
-from datetime import datetime
+import json
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -19,6 +20,9 @@ else:
     db_path = 'sqlite:///' + os.path.join(BASE_DIR, 'universe.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', db_path)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SESSION_PERMANENT'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 
 db.init_app(app)
 
@@ -86,7 +90,7 @@ def register():
                         display_name=display, age=age, date_of_birth=dob)
             db.session.add(user)
             db.session.commit()
-            login_user(user)
+            login_user(user, remember=True)
             flash('Welcome to UniVerse!', 'success')
             return redirect(url_for('feed'))
     return render_template('auth/register.html')
@@ -99,7 +103,7 @@ def login():
         password = request.form.get('password', '')
         user = User.query.filter_by(username=username).first() or User.query.filter_by(email=username).first()
         if user and user.password_hash and check_password_hash(user.password_hash, password):
-            login_user(user)
+            login_user(user, remember=True)
             return redirect(url_for('feed'))
         flash('Invalid username or password', 'error')
     return render_template('auth/login.html')
@@ -609,6 +613,77 @@ def manage_delete_game(game_id):
         db.session.commit()
         flash(f'Game "{game.title}" deleted', 'success')
     return redirect(url_for('manage'))
+
+
+def _db_models():
+    return [
+        ('Users', User), ('Posts', Post), ('Post Likes', PostLike), ('Post Reactions', PostReaction),
+        ('Chat Messages', ChatMessage), ('Movies', Movie), ('Movie Reviews', MovieReview),
+        ('Watchlist', Watchlist), ('Games', Game), ('Game Reviews', GameReview),
+        ('Game Library', UserGameLibrary), ('LFG Posts', LfgPost), ('Departments', Department),
+        ('Courses', Course), ('Academic Notes', AcademicNote), ('Past Questions', PastQuestion),
+        ('MCQs', MCQ), ('Discussion Threads', DiscussionThread), ('Discussion Replies', DiscussionReply),
+    ]
+
+
+@app.route('/manage/database')
+@login_required
+def manage_database():
+    if not current_user.is_admin:
+        flash('Admin access required', 'error')
+        return redirect(url_for('manage'))
+    tables = []
+    total = 0
+    for label, model in _db_models():
+        count = model.query.count()
+        total += count
+        tables.append((label, count))
+    url = str(db.engine.url)
+    if url.startswith('sqlite:'):
+        backend = 'SQLite (local file)'
+    else:
+        backend = url.split('://')[0].title() + ' (persistent remote)'
+    return render_template('manage_database.html', tables=tables, total=total, backend=backend, db_url=url)
+
+
+@app.route('/manage/database/export')
+@login_required
+def manage_database_export():
+    if not current_user.is_admin:
+        flash('Admin access required', 'error')
+        return redirect(url_for('manage'))
+    data = {}
+    for label, model in _db_models():
+        rows = []
+        for obj in model.query.all():
+            row = {}
+            for col in model.__table__.columns:
+                val = getattr(obj, col.name)
+                if hasattr(val, 'isoformat'):
+                    val = val.isoformat()
+                row[col.name] = val
+            rows.append(row)
+        data[label.replace(' ', '_').lower()] = rows
+    payload = json.dumps({'exported_at': datetime.utcnow().isoformat(), 'data': data}, indent=2, default=str)
+    resp = app.response_class(payload, mimetype='application/json')
+    resp.headers['Content-Disposition'] = 'attachment; filename=universe-backup.json'
+    return resp
+
+
+@app.route('/manage/database/reset', methods=['POST'])
+@login_required
+def manage_database_reset():
+    if not current_user.is_admin:
+        flash('Admin access required', 'error')
+        return redirect(url_for('manage'))
+    if request.form.get('confirm', '').strip().upper() != 'RESET':
+        flash('Type RESET to confirm before clearing the database', 'error')
+        return redirect(url_for('manage_database'))
+    db.drop_all()
+    db.create_all()
+    seed()
+    flash('Database cleared and reseeded with demo data', 'success')
+    return redirect(url_for('manage_database'))
 
 
 def _manage_panel():

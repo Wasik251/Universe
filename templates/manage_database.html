@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Database Manager - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>Database Manager</h1>
+    <div>
+        <a href="{{ url_for('manage') }}" class="btn btn-ghost btn-sm">← Manage Center</a>
+        <a href="{{ url_for('manage_database_export') }}" class="btn btn-primary btn-sm" onclick="playSound()">⬇ Export Backup</a>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Connection</h3>
+    <div class="stats-row">
+        <div class="stat-box">
+            <strong>{{ total }}</strong>
+            <span>Total rows</span>
+        </div>
+        <div class="stat-box">
+            <strong>{{ backend }}</strong>
+            <span>Engine</span>
+        </div>
+    </div>
+    <p class="text-muted" style="margin-top:0.75rem;word-break:break-all;font-size:0.8rem;">{{ db_url }}</p>
+</div>
+
+<div class="card">
+    <h3>Tables</h3>
+    <table class="users-table">
+        <thead>
+            <tr>
+                <th>Table</th>
+                <th>Rows</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for label, count in tables %}
+            <tr>
+                <td>{{ label }}</td>
+                <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card" style="border-color: var(--danger);">
+    <h3 style="color: var(--danger);">⚠ Danger Zone</h3>
+    <p class="text-muted">Clears every table and restores the demo data. This cannot be undone.</p>
+    <form method="post" action="{{ url_for('manage_database_reset') }}">
+        <div class="form-row" style="max-width:400px;">
+            <input type="text" name="confirm" class="form-input" placeholder="Type RESET to confirm" required>
+            <button type="submit" class="btn btn-danger-text" onclick="playSound()">Reset Database</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
