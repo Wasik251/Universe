@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Feed - UniVerse{% endblock %}
+{% block content %}
+<div class="feed-layout">
+    <div class="card post-create">
+        <div class="post-create-header">
+            <div class="avatar-sm">{{ current_user.initials() }}</div>
+            <h3>What's happening?</h3>
+        </div>
+        <form method="post" action="{{ url_for('create_post') }}">
+            <textarea name="content" rows="3" placeholder="Share something with the community..." required></textarea>
+            <button type="submit" class="btn btn-primary">Post</button>
+        </form>
+    </div>
+
+    <div class="posts-feed">
+        {% for post in posts %}
+        <div class="card post">
+            <div class="post-header">
+                <div class="avatar-sm">{{ post.author.initials() }}</div>
+                <div class="post-author-info">
+                    <a href="{{ url_for('profile_view', user_id=post.author.id) }}">{{ post.author.display_name }}</a>
+                    <small>@{{ post.author.username }} · {{ post.created_at.strftime('%b %d, %Y') }}</small>
+                </div>
+            </div>
+            <div class="post-content">
+                <p>{{ post.content }}</p>
+            </div>
+            <div class="post-actions">
+                <form method="post" action="{{ url_for('like_post', post_id=post.id) }}">
+                    <button type="submit" class="btn-action {{ 'liked' if can_like(post) }}">
+                        {{ '♥' if can_like(post) else '♡' }} {{ post.like_count() }} Likes
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="card empty-state">
+            <p>No posts yet. Be the first to share something!</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ dept.name }} - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>{{ dept.name }}</h1>
+    <a href="{{ url_for('academic') }}" class="btn btn-ghost btn-sm">Back to Hub</a>
+</div>
+<p class="text-muted">{{ dept.description }}</p>
+
+<h2 class="subsection-title">Courses</h2>
+<div class="grid">
+    {% for course in courses %}
+    <div class="card course-card">
+        <a href="{{ url_for('course', course_id=course.id) }}">
+            <span class="badge badge-code">{{ course.code }}</span>
+            <h3>{{ course.title }}</h3>
+            <p class="media-meta">{{ course.semester }}</p>
+        </a>
+    </div>
+    {% else %}
+    <div class="card empty-state">
+        <p>No courses in this department yet.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

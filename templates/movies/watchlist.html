@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Watchlist - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>My Watchlist</h1>
+    <a href="{{ url_for('movies') }}" class="btn btn-ghost btn-sm">Back to Movies</a>
+</div>
+<div class="grid">
+    {% for entry in entries %}
+    <div class="card media-card">
+        <a href="{{ url_for('movie_detail', movie_id=entry.movie.id) }}">
+            {% if entry.movie.image_url %}
+            <img src="{{ entry.movie.image_url }}" alt="{{ entry.movie.title }}" class="media-image" onerror="this.style.display='none'">
+            {% endif %}
+            <div class="media-body">
+                <h3>{{ entry.movie.title }}</h3>
+                <p class="media-meta">{{ entry.movie.release_year }} · {{ entry.movie.genre }}</p>
+                <p class="media-rating">★ {{ entry.movie.avg_rating() }}</p>
+            </div>
+        </a>
+    </div>
+    {% else %}
+    <div class="card empty-state">
+        <p>Your watchlist is empty. Add movies you want to see!</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

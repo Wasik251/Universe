@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ movie.title }} - UniVerse{% endblock %}
+{% block content %}
+<div class="detail-layout">
+    <div class="card detail-card">
+        <div class="detail-top">
+            {% if movie.image_url %}
+            <img src="{{ movie.image_url }}" alt="{{ movie.title }}" class="detail-image" onerror="this.style.display='none'">
+            {% endif %}
+            <div class="detail-info">
+                <h1>{{ movie.title }}</h1>
+                <p class="media-meta">{{ movie.release_year }} · {{ movie.genre }}</p>
+                <p class="media-rating">★ {{ movie.avg_rating() }} / 10</p>
+                <p class="detail-desc">{{ movie.description }}</p>
+                <form method="post" action="{{ url_for('toggle_watchlist', movie_id=movie.id) }}">
+                    <button type="submit" class="btn {{ 'btn-accent' if in_watchlist else 'btn-primary' }}">
+                        {{ 'Remove from Watchlist' if in_watchlist else 'Add to Watchlist' }}
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Write a Review</h3>
+        <form method="post" action="{{ url_for('movie_review', movie_id=movie.id) }}">
+            <div class="form-group">
+                <label for="rating">Rating</label>
+                <select name="rating" id="rating" class="form-input">
+                    {% for i in range(1, 11) %}
+                    <option value="{{ i }}">{{ i }}/10</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="comment">Comment</label>
+                <textarea name="comment" id="comment" rows="3" class="form-input" placeholder="What did you think?"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Review</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>Reviews ({{ reviews|length }})</h3>
+        {% for review in reviews %}
+        <div class="review">
+            <div class="review-header">
+                <strong>{{ review.user.display_name }}</strong>
+                <span class="media-rating">★ {{ review.rating }}/10</span>
+            </div>
+            {% if review.comment %}<p>{{ review.comment }}</p>{% endif %}
+        </div>
+        {% else %}
+        <p class="empty-text">No reviews yet. Be the first!</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

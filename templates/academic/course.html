@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}{{ course.title }} - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>{{ course.code }} · {{ course.title }}</h1>
+    <a href="{{ url_for('department', dept_id=course.department.id) }}" class="btn btn-ghost btn-sm">{{ course.department.name }}</a>
+</div>
+<p class="text-muted">{{ course.description }}</p>
+
+<div class="tabs">
+    <button class="tab-btn active" data-tab="notes">Notes</button>
+    <button class="tab-btn" data-tab="questions">Past Questions</button>
+    <button class="tab-btn" data-tab="mcqs">MCQs</button>
+    <button class="tab-btn" data-tab="discussions">Discussions</button>
+</div>
+
+<div class="tab-panel active" id="tab-notes">
+    <div class="card">
+        <h3>Add a Note</h3>
+        <form method="post" action="{{ url_for('add_note', course_id=course.id) }}">
+            <div class="form-group">
+                <input type="text" name="title" class="form-input" placeholder="Note title" required>
+            </div>
+            <div class="form-group">
+                <textarea name="content" rows="3" class="form-input" placeholder="Write your notes..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Note</button>
+        </form>
+    </div>
+    {% for note in notes %}
+    <div class="card note-card">
+        <h3>{{ note.title }}</h3>
+        <p>{{ note.content }}</p>
+        <small class="text-muted">{{ note.created_at.strftime('%b %d, %Y') }}</small>
+    </div>
+    {% else %}
+    <div class="card empty-state"><p>No notes yet.</p></div>
+    {% endfor %}
+</div>
+
+<div class="tab-panel" id="tab-questions">
+    {% for pq in past_questions %}
+    <div class="card note-card">
+        <h3>{{ pq.title }} <span class="badge badge-year">{{ pq.exam_year }}</span></h3>
+        <p style="white-space:pre-wrap;">{{ pq.content }}</p>
+    </div>
+    {% else %}
+    <div class="card empty-state"><p>No past questions uploaded yet.</p></div>
+    {% endfor %}
+</div>
+
+<div class="tab-panel" id="tab-mcqs">
+    <div class="card">
+        <h3>Add an MCQ</h3>
+        <form method="post" action="{{ url_for('add_mcq', course_id=course.id) }}">
+            <div class="form-group"><input type="text" name="question" class="form-input" placeholder="Question" required></div>
+            <div class="form-group"><input type="text" name="option_a" class="form-input" placeholder="Option A" required></div>
+            <div class="form-group"><input type="text" name="option_b" class="form-input" placeholder="Option B" required></div>
+            <div class="form-group"><input type="text" name="option_c" class="form-input" placeholder="Option C" required></div>
+            <div class="form-group"><input type="text" name="option_d" class="form-input" placeholder="Option D" required></div>
+            <div class="form-group">
+                <select name="correct_answer" class="form-input" style="width:100px;">
+                    <option value="A">A</option>
+                    <option value="B">B</option>
+                    <option value="C">C</option>
+                    <option value="D">D</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Add MCQ</button>
+        </form>
+    </div>
+    {% for mcq in mcqs %}
+    <div class="card mcq-card">
+        <h3>{{ mcq.question }}</h3>
+        <div class="mcq-options">
+            <button class="mcq-option" onclick="revealAnswer({{ mcq.id }}, 'A')">A. {{ mcq.option_a }}</button>
+            <button class="mcq-option" onclick="revealAnswer({{ mcq.id }}, 'B')">B. {{ mcq.option_b }}</button>
+            <button class="mcq-option" onclick="revealAnswer({{ mcq.id }}, 'C')">C. {{ mcq.option_c }}</button>
+            <button class="mcq-option" onclick="revealAnswer({{ mcq.id }}, 'D')">D. {{ mcq.option_d }}</button>
+        </div>
+        <p class="mcq-answer" id="answer-{{ mcq.id }}">Answer: {{ mcq.correct_answer }}</p>
+    </div>
+    {% else %}
+    <div class="card empty-state"><p>No MCQs yet.</p></div>
+    {% endfor %}
+</div>
+
+<div class="tab-panel" id="tab-discussions">
+    <div class="card">
+        <h3>Start a Discussion</h3>
+        <form method="post" action="{{ url_for('create_thread', course_id=course.id) }}">
+            <div class="form-group">
+                <input type="text" name="title" class="form-input" placeholder="Discussion title" required>
+            </div>
+            <div class="form-group">
+                <textarea name="content" rows="3" class="form-input" placeholder="Start the conversation..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Post Thread</button>
+        </form>
+    </div>
+    {% for thread in threads %}
+    <div class="card thread-card">
+        <a href="{{ url_for('thread', thread_id=thread.id) }}">
+            <h3>{{ thread.title }}</h3>
+            <p class="text-muted">{{ thread.author.display_name }} · {{ thread.replies.count() }} replies</p>
+        </a>
+    </div>
+    {% else %}
+    <div class="card empty-state"><p>No discussions yet. Start one!</p></div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function revealAnswer(id, answer) {
+    const el = document.getElementById('answer-' + id);
+    el.style.display = 'block';
+    el.textContent = 'Answer: ' + el.getAttribute('data-answer');
+    el.setAttribute('data-answer', el.getAttribute('data-answer') || '{{ mcq.correct_answer }}');
+}
+document.querySelectorAll('.mcq-answer').forEach(el => {
+    const id = el.id.split('-')[1];
+    el.setAttribute('data-answer', el.textContent.replace('Answer: ', ''));
+    el.style.display = 'none';
+});
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+});
+</script>
+{% endblock %}

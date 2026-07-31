@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Looking For Group - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>Looking For Group</h1>
+</div>
+
+<div class="card">
+    <h3>Create an LFG Post</h3>
+    <form method="post" action="{{ url_for('lfg_create') }}">
+        <div class="form-group">
+            <label for="game_id">Game</label>
+            <select name="game_id" id="game_id" class="form-input" required>
+                <option value="">Select a game...</option>
+                {% for game in games %}
+                <option value="{{ game.id }}">{{ game.title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" name="title" id="title" class="form-input" placeholder="Looking for raid group" required>
+        </div>
+        <div class="form-group">
+            <label for="description">Details</label>
+            <textarea name="description" id="description" rows="3" class="form-input" placeholder="Mic required, experienced players preferred"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="players_needed">Players Needed</label>
+            <input type="number" name="players_needed" id="players_needed" class="form-input" value="1" min="1" max="100" style="width:100px;">
+        </div>
+        <button type="submit" class="btn btn-primary">Post</button>
+    </form>
+</div>
+
+<div class="lfg-list">
+    {% for post in posts %}
+    <div class="card lfg-card">
+        <div class="post-header">
+            <div class="avatar-sm">{{ post.user.initials() }}</div>
+            <div class="post-author-info">
+                <strong>{{ post.title }}</strong>
+                <small>{{ post.user.display_name }} · {{ post.game.title }} · {{ post.created_at.strftime('%b %d, %Y') }}</small>
+            </div>
+        </div>
+        {% if post.description %}<p>{{ post.description }}</p>{% endif %}
+        <span class="badge badge-lfg">{{ post.players_needed }} player(s) needed</span>
+    </div>
+    {% else %}
+    <div class="card empty-state">
+        <p>No LFG posts yet. Create one to find your squad!</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

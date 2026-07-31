@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}My Library - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>My Game Library</h1>
+    <a href="{{ url_for('games') }}" class="btn btn-ghost btn-sm">Back to Games</a>
+</div>
+<div class="grid">
+    {% for entry in entries %}
+    <div class="card media-card">
+        <a href="{{ url_for('game_detail', game_id=entry.game.id) }}">
+            {% if entry.game.image_url %}
+            <img src="{{ entry.game.image_url }}" alt="{{ entry.game.title }}" class="media-image" onerror="this.style.display='none'">
+            {% endif %}
+            <div class="media-body">
+                <h3>{{ entry.game.title }}</h3>
+                <p class="media-meta">{{ entry.game.genre }}</p>
+                <span class="badge badge-{{ entry.status }}">{{ entry.status|title }}</span>
+            </div>
+        </a>
+    </div>
+    {% else %}
+    <div class="card empty-state">
+        <p>Your library is empty. Add games you own or want to play!</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

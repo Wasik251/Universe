@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ thread.title }} - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>{{ thread.title }}</h1>
+    <a href="{{ url_for('course', course_id=thread.course.id) }}" class="btn btn-ghost btn-sm">Back to {{ thread.course.code }}</a>
+</div>
+
+<div class="card">
+    <div class="post-header">
+        <div class="avatar-sm">{{ thread.author.initials() }}</div>
+        <div class="post-author-info">
+            <a href="{{ url_for('profile_view', user_id=thread.author.id) }}">{{ thread.author.display_name }}</a>
+            <small>@{{ thread.author.username }} · {{ thread.created_at.strftime('%b %d, %Y') }}</small>
+        </div>
+    </div>
+    {% if thread.content %}<p>{{ thread.content }}</p>{% endif %}
+</div>
+
+<div class="card">
+    <h3>Replies ({{ replies|length }})</h3>
+    <form method="post" action="{{ url_for('reply_thread', thread_id=thread.id) }}">
+        <div class="form-group">
+            <textarea name="content" rows="2" class="form-input" placeholder="Add a reply..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Reply</button>
+    </form>
+    {% for reply in replies %}
+    <div class="review">
+        <div class="review-header">
+            <strong>{{ reply.author.display_name }}</strong>
+            <small class="text-muted">{{ reply.created_at.strftime('%b %d, %Y') }}</small>
+        </div>
+        <p>{{ reply.content }}</p>
+    </div>
+    {% else %}
+    <p class="empty-text">No replies yet. Be the first to respond!</p>
+    {% endfor %}
+</div>
+{% endblock %}

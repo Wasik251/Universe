@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Academic Hub - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>Academic Hub</h1>
+    <p class="text-muted">Browse departments, study materials, and discussions</p>
+</div>
+
+<h2 class="subsection-title">Departments</h2>
+<div class="grid">
+    {% for dept in departments %}
+    <div class="card dept-card">
+        <a href="{{ url_for('department', dept_id=dept.id) }}">
+            <div class="dept-icon">{{ dept.code }}</div>
+            <h3>{{ dept.name }}</h3>
+            <p class="media-meta">{{ dept.courses.count() }} courses</p>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+<h2 class="subsection-title">All Courses</h2>
+<div class="grid">
+    {% for course in courses %}
+    <div class="card course-card">
+        <a href="{{ url_for('course', course_id=course.id) }}">
+            <span class="badge badge-code">{{ course.code }}</span>
+            <h3>{{ course.title }}</h3>
+            <p class="media-meta">{{ course.department.name }} · {{ course.semester }}</p>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

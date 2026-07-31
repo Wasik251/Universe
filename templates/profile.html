@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ user.display_name }} - UniVerse{% endblock %}
+{% block content %}
+<div class="profile-layout">
+    <div class="card profile-card">
+        <div class="profile-header">
+            <div class="avatar-lg">{{ user.initials() }}</div>
+            <div class="profile-info">
+                <h1>{{ user.display_name }}</h1>
+                <p class="text-muted">@{{ user.username }}</p>
+                <p>{{ user.bio or 'No bio yet.' }}</p>
+                <div class="profile-stats">
+                    <span><strong>{{ user.posts.count() }}</strong> posts</span>
+                    <span><strong>{{ user.followers_count() }}</strong> followers</span>
+                    <span><strong>{{ user.following_count() }}</strong> following</span>
+                </div>
+            </div>
+        </div>
+
+        {% if user.id == current_user.id %}
+        <div class="profile-edit">
+            <h3>Edit Profile</h3>
+            <form method="post" action="{{ url_for('profile_edit') }}">
+                <div class="form-group">
+                    <label for="display_name">Display Name</label>
+                    <input type="text" name="display_name" id="display_name" class="form-input" value="{{ user.display_name }}">
+                </div>
+                <div class="form-group">
+                    <label for="bio">Bio</label>
+                    <textarea name="bio" id="bio" rows="3" class="form-input">{{ user.bio }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Save</button>
+            </form>
+        </div>
+        {% else %}
+        <form method="post" action="{{ url_for('toggle_follow', user_id=user.id) }}">
+            <button type="submit" class="btn {{ 'btn-accent' if current_user.following.filter_by(id=user.id).first() else 'btn-primary' }}">
+                {{ 'Unfollow' if current_user.following.filter_by(id=user.id).first() else 'Follow' }}
+            </button>
+        </form>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h3>Posts</h3>
+        {% for post in posts %}
+        <div class="post">
+            <div class="post-content">
+                <p>{{ post.content }}</p>
+            </div>
+            <small class="text-muted">{{ post.created_at.strftime('%b %d, %Y') }} · {{ post.like_count() }} likes</small>
+        </div>
+        {% else %}
+        <p class="empty-text">No posts yet.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
