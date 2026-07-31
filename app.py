@@ -1,9 +1,12 @@
 import os
 import json
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
+
+load_dotenv()
 
 from models import (db, User, Post, PostLike, PostReaction, ChatMessage, Movie, MovieReview, Watchlist, Game,
                     GameReview, UserGameLibrary, LfgPost, Department, Course,
