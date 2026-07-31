@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Chat - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>UniVerse Chat</h1>
+    <span class="badge">Live</span>
+</div>
+
+<div class="chat-container">
+    <div class="chat-messages" id="chat-messages">
+        {% for msg in messages %}
+        <div class="chat-msg {{ 'user' if msg.user_id == current_user.id else 'assistant' }}">
+            <div class="chat-meta">{{ msg.user.display_name }} · {{ msg.created_at.strftime('%H:%M') }}</div>
+            <div class="chat-bubble">{{ msg.content }}</div>
+        </div>
+        {% else %}
+        <div class="chat-msg assistant">
+            <div class="chat-meta">UniVerse</div>
+            <div class="chat-bubble">Welcome to the chat! Say hello 👋</div>
+        </div>
+        {% endfor %}
+    </div>
+    <form method="post" action="{{ url_for('chat_send') }}" class="chat-input-row">
+        <input type="text" name="content" class="form-input" placeholder="Type a message..." autocomplete="off" required>
+        <button type="submit" class="btn btn-primary" onclick="playSound()">Send</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const messagesEl = document.getElementById('chat-messages');
+if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+</script>
+{% endblock %}

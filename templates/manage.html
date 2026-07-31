@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Manage - UniVerse{% endblock %}
+{% block content %}
+{% if locked %}
+<div class="section-header">
+    <h1>Manage Center</h1>
+</div>
+<div class="card manage-lock">
+    <div class="lock-icon">🔒</div>
+    <h3>Admin Access Required</h3>
+    <p class="text-muted">Enter the admin password to manage UniVerse.</p>
+    <form method="post" action="{{ url_for('manage') }}">
+        <div class="form-group">
+            <input type="password" name="admin_pass" class="form-input" placeholder="Admin password" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" onclick="playSound()">Unlock</button>
+    </form>
+</div>
+{% else %}
+<div class="section-header">
+    <h1>Manage Center</h1>
+    <span class="badge">Admin</span>
+</div>
+
+<div class="manage-grid">
+    <div class="card">
+        <h3>➕ Add a Movie</h3>
+        <form method="post" action="{{ url_for('manage_add_movie') }}">
+            <div class="form-group">
+                <input type="text" name="title" class="form-input" placeholder="Movie title" required>
+            </div>
+            <div class="form-row">
+                <input type="number" name="release_year" class="form-input" placeholder="Year" min="1900" max="2100">
+                <input type="text" name="genre" class="form-input" placeholder="Genre">
+            </div>
+            <div class="form-group">
+                <input type="number" step="0.1" min="0" max="10" name="rating" class="form-input" placeholder="Rating (0-10)">
+            </div>
+            <div class="form-group">
+                <textarea name="description" rows="2" class="form-input" placeholder="Description"></textarea>
+            </div>
+            <div class="form-group">
+                <input type="url" name="image_url" class="form-input" placeholder="Poster image URL (optional)">
+            </div>
+            <button type="submit" class="btn btn-primary" onclick="playSound()">Add Movie</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>📊 Stats</h3>
+        <div class="stats-row">
+            <div class="stat-box">
+                <strong>{{ users|length }}</strong>
+                <span>Users</span>
+            </div>
+            <div class="stat-box">
+                <strong>{{ movies|length }}</strong>
+                <span>Movies</span>
+            </div>
+            <div class="stat-box">
+                <strong>{{ posts|length }}</strong>
+                <span>Posts</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h3>🎬 Movies ({{ movies|length }})</h3>
+    <table class="users-table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Year</th>
+                <th>Genre</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for movie in movies %}
+            <tr>
+                <td>{{ movie.title }}</td>
+                <td>{{ movie.release_year }}</td>
+                <td>{{ movie.genre }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('manage_delete_movie', movie_id=movie.id) }}">
+                        <button type="submit" class="btn btn-danger-text" onclick="playSound()">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h3>👥 Users ({{ users|length }})</h3>
+    <table class="users-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Age</th>
+                <th>Signed Up</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>
+                    <div class="post-header" style="margin-bottom:0;">
+                        <div class="avatar-sm">{{ user.initials() }}</div>
+                        <a href="{{ url_for('profile_view', user_id=user.id) }}" style="font-weight:600;">{{ user.display_name }}</a>
+                    </div>
+                </td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.age }}</td>
+                <td class="users-date">{{ user.created_at.strftime('%b %d, %Y') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h3>📝 Recent Posts ({{ posts|length }})</h3>
+    <table class="users-table">
+        <thead>
+            <tr>
+                <th>Author</th>
+                <th>Content</th>
+                <th>Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for post in posts[:30] %}
+            <tr>
+                <td>{{ post.author.display_name }}</td>
+                <td class="users-bio">{{ post.content[:60] }}</td>
+                <td class="users-date">{{ post.created_at.strftime('%b %d, %Y') }}</td>
+                <td>
+                    <form method="post" action="{{ url_for('manage_delete_post', post_id=post.id) }}">
+                        <button type="submit" class="btn btn-danger-text" onclick="playSound()">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

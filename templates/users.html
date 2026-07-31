@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Users - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>Users</h1>
+    <span class="badge">{{ total }} signed up</span>
+</div>
+
+<div class="card">
+    <table class="users-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Username</th>
+                <th>Bio</th>
+                <th>Signed Up</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>
+                    <div class="post-header" style="margin-bottom:0;">
+                        <div class="avatar-sm">{{ user.initials() }}</div>
+                        <a href="{{ url_for('profile_view', user_id=user.id) }}" style="font-weight:600;">{{ user.display_name }}</a>
+                    </div>
+                </td>
+                <td>@{{ user.username }}</td>
+                <td class="users-bio">{{ user.bio or '—' }}</td>
+                <td class="users-date">{{ user.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

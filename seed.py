@@ -29,10 +29,19 @@ def seed():
     if User.query.first():
         return
 
-    alice = User(username='alice', password_hash=generate_password_hash('pass'), display_name='Alice Johnson', bio='Movie lover and CS student')
-    bob = User(username='bob', password_hash=generate_password_hash('pass'), display_name='Bob Smith', bio='Gamer and football fan')
-    carol = User(username='carol', password_hash=generate_password_hash('pass'), display_name='Carol Williams', bio='Future software engineer')
-    db.session.add_all([alice, bob, carol])
+    alice = User(username='alice', email='alice@universe.app',
+                 password_hash=generate_password_hash('pass'),
+                 display_name='Alice Johnson', age=22, bio='Movie lover and CS student')
+    bob = User(username='bob', email='bob@universe.app',
+               password_hash=generate_password_hash('pass'),
+               display_name='Bob Smith', age=24, bio='Gamer and football fan')
+    carol = User(username='carol', email='carol@universe.app',
+                 password_hash=generate_password_hash('pass'),
+                 display_name='Carol Williams', age=21, bio='Future software engineer')
+    admin = User(username='admin', email='admin@universe.app',
+                 password_hash=generate_password_hash('313121'),
+                 display_name='Admin', age=25, bio='UniVerse Administrator', is_admin=True)
+    db.session.add_all([alice, bob, carol, admin])
     db.session.flush()
 
     posts = [

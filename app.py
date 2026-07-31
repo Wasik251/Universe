@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from models import (db, User, Post, PostLike, Movie, MovieReview, Watchlist, Game,
+from models import (db, User, Post, PostLike, ChatMessage, Movie, MovieReview, Watchlist, Game,
                     GameReview, UserGameLibrary, LfgPost, Department, Course,
                     AcademicNote, PastQuestion, MCQ, DiscussionThread, DiscussionReply)
 from seed import seed
@@ -42,18 +42,43 @@ with app.app_context():
 def register():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
+        display = request.form.get('display_name', '').strip()
+        email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
-        display = request.form.get('display_name', '').strip() or username
+        confirm = request.form.get('confirm_password', '')
+        try:
+            age = int(request.form.get('age', 0) or 0)
+        except ValueError:
+            age = 0
+
+        errors = []
+        if not username or not display or not email:
+            errors.append('Please fill in all fields')
         if User.query.filter_by(username=username).first():
-            flash('Username already taken', 'error')
-        elif len(password) < 4:
-            flash('Password must be at least 4 characters', 'error')
+            errors.append('Username already taken')
+        if email and User.query.filter_by(email=email).first():
+            errors.append('Email already registered')
+        if not email or '@' not in email or '.' not in email:
+            errors.append('Enter a valid email address')
+        if len(password) < 4:
+            errors.append('Password must be at least 4 characters')
+        if password != confirm:
+            errors.append('Passwords do not match')
+        if age < 10:
+            errors.append('You must be at least 10 years old to join UniVerse')
+
+        if errors:
+            for e in errors:
+                flash(e, 'error')
         else:
-            user = User(username=username, password_hash=generate_password_hash(password), display_name=display)
+            user = User(username=username, email=email,
+                        password_hash=generate_password_hash(password),
+                        display_name=display, age=age)
             db.session.add(user)
             db.session.commit()
-            flash('Account created! Please sign in', 'success')
-            return redirect(url_for('login'))
+            login_user(user)
+            flash('Welcome to UniVerse!', 'success')
+            return redirect(url_for('feed'))
     return render_template('auth/register.html')
 
 
@@ -62,7 +87,7 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
-        user = User.query.filter_by(username=username).first()
+        user = User.query.filter_by(username=username).first() or User.query.filter_by(email=username).first()
         if user and user.password_hash and check_password_hash(user.password_hash, password):
             login_user(user)
             return redirect(url_for('feed'))
@@ -77,12 +102,12 @@ def logout():
     return redirect(url_for('login'))
 
 
-# ---------- FEED ----------
+# ---------- LANDING ----------
 @app.route('/')
 def index():
     if current_user.is_authenticated:
         return redirect(url_for('feed'))
-    return redirect(url_for('login'))
+    return render_template('welcome.html')
 
 
 @app.route('/feed')
@@ -342,6 +367,13 @@ def reply_thread(thread_id):
 
 
 # ---------- PROFILE ----------
+@app.route('/users')
+@login_required
+def users():
+    users = User.query.order_by(User.created_at.asc()).all()
+    return render_template('users.html', users=users, total=len(users))
+
+
 @app.route('/profile')
 @login_required
 def profile():
@@ -383,56 +415,93 @@ def profile_edit():
     return redirect(url_for('profile'))
 
 
-# ---------- AI ASSISTANT ----------
-@app.route('/assistant')
+# ---------- CHAT ----------
+@app.route('/chat')
 @login_required
-def assistant():
-    return render_template('assistant.html', messages=session.get('chat_history', []))
+def chat():
+    messages = ChatMessage.query.order_by(ChatMessage.created_at.asc()).limit(200).all()
+    return render_template('chat.html', messages=messages)
 
 
-@app.route('/assistant/send', methods=['POST'])
+@app.route('/chat/send', methods=['POST'])
 @login_required
-def assistant_send():
-    user_msg = request.json.get('message', '').strip() if request.is_json else request.form.get('message', '').strip()
-    if not user_msg:
-        return jsonify(error='Empty message'), 400
-
-    history = session.get('chat_history', [])
-    history.append({'role': 'user', 'content': user_msg})
-    session['chat_history'] = history[-50:]
-
-    reply = _get_gemini_reply(history)
-    history.append({'role': 'assistant', 'content': reply})
-    session['chat_history'] = history[-50:]
-
-    if request.is_json:
-        return jsonify(reply=reply)
-    return redirect(url_for('assistant'))
+def chat_send():
+    content = request.form.get('content', '').strip()
+    if content:
+        db.session.add(ChatMessage(user_id=current_user.id, content=content))
+        db.session.commit()
+    return redirect(url_for('chat'))
 
 
-def _get_gemini_reply(history):
-    api_key = os.environ.get('GEMINI_API_KEY')
-    if api_key:
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            system = (
-                "You are UniVerse Assistant, a helpful AI assistant for UniVerse, "
-                "a student platform with a social feed, movies, games, and an academic hub. "
-                "Be friendly, concise, and helpful. "
-            )
-            messages = [{'role': 'model', 'parts': [system]}]
-            for m in history:
-                role = 'model' if m['role'] == 'assistant' else 'user'
-                messages.append({'role': role, 'parts': [m['content']]})
-            response = model.generate_content(messages)
-            return response.text.strip()
-        except Exception as e:
-            return f"I couldn't reach the AI service right now ({e}). Please check your GEMINI_API_KEY."
-    return ("I'm a demo assistant. To enable AI responses, set the GEMINI_API_KEY "
-            "environment variable and restart the app. You can get a free key at "
-            "https://aistudio.google.com/apikey")
+# ---------- ADMIN / MANAGE ----------
+@app.route('/manage', methods=['GET', 'POST'])
+@login_required
+def manage():
+    if current_user.is_admin:
+        return _manage_panel()
+    if request.method == 'POST':
+        if request.form.get('admin_pass') == '313121':
+            current_user.is_admin = True
+            db.session.commit()
+            flash('Admin access granted!', 'success')
+            return _manage_panel()
+        flash('Incorrect admin password', 'error')
+    return render_template('manage.html', locked=True)
+
+
+@app.route('/manage/movie/add', methods=['POST'])
+@login_required
+def manage_add_movie():
+    if not current_user.is_admin:
+        flash('Admin access required', 'error')
+        return redirect(url_for('manage'))
+    title = request.form.get('title', '').strip()
+    year = request.form.get('release_year', type=int, default=0)
+    genre = request.form.get('genre', '').strip()
+    rating = request.form.get('rating', type=float, default=0)
+    description = request.form.get('description', '').strip()
+    image_url = request.form.get('image_url', '').strip()
+    if title:
+        db.session.add(Movie(title=title, release_year=year or 0, genre=genre or 'Unknown',
+                             rating=rating, description=description, image_url=image_url))
+        db.session.commit()
+        flash(f'Movie "{title}" added!', 'success')
+    return redirect(url_for('manage'))
+
+
+@app.route('/manage/movie/<int:movie_id>/delete', methods=['POST'])
+@login_required
+def manage_delete_movie(movie_id):
+    if not current_user.is_admin:
+        flash('Admin access required', 'error')
+        return redirect(url_for('manage'))
+    movie = db.session.get(Movie, movie_id)
+    if movie:
+        db.session.delete(movie)
+        db.session.commit()
+        flash(f'Movie "{movie.title}" deleted', 'success')
+    return redirect(url_for('manage'))
+
+
+@app.route('/manage/post/<int:post_id>/delete', methods=['POST'])
+@login_required
+def manage_delete_post(post_id):
+    if not current_user.is_admin:
+        flash('Admin access required', 'error')
+        return redirect(url_for('manage'))
+    post = db.session.get(Post, post_id)
+    if post:
+        db.session.delete(post)
+        db.session.commit()
+        flash('Post deleted', 'success')
+    return redirect(url_for('manage'))
+
+
+def _manage_panel():
+    movies = Movie.query.all()
+    users = User.query.all()
+    posts = Post.query.order_by(Post.created_at.desc()).all()
+    return render_template('manage.html', locked=False, movies=movies, users=users, posts=posts)
 
 
 # ---------- TEMPLATE HELPERS ----------

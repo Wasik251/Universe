@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to UniVerse</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/sound.js') }}"></script>
+</head>
+<body class="welcome-body">
+    <div class="welcome-container">
+        <div class="welcome-card animate-pop">
+            <div class="welcome-logo">UNIVERSE</div>
+            <p class="welcome-tagline">Movies. Games. Academics. Friends. All in one universe.</p>
+            <p class="welcome-text">
+                Welcome to <strong>UniVerse</strong> — the all-in-one student platform where you can
+                share short posts with your community, discover and review your favorite movies and
+                games, dive into the Academic Hub for notes, past questions, and study discussions,
+                and chat live with fellow students. Join thousands building their universe today.
+            </p>
+            <div class="welcome-actions">
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-block btn-lg" onclick="playSound()">Log In</a>
+                <a href="{{ url_for('register') }}" class="btn btn-ghost btn-block btn-lg" onclick="playSound()">Sign Up</a>
+            </div>
+            <p class="welcome-footer">New here? Creating an account takes less than a minute.</p>
+        </div>
+    </div>
+</body>
+</html>
