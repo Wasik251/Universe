@@ -8,7 +8,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 load_dotenv()
 
-from models import (db, User, Post, PostLike, PostReaction, ChatMessage, Movie, MovieReview, Watchlist, Game,
+from models import (db, User, Post, PostLike, PostReaction, PostComment, ChatMessage, Movie, MovieReview, Watchlist, Game,
                     GameReview, UserGameLibrary, LfgPost, Department, Course,
                     AcademicNote, PastQuestion, MCQ, DiscussionThread, DiscussionReply)
 from seed import seed
@@ -182,6 +182,29 @@ def react_post(post_id):
         else:
             db.session.add(PostReaction(post_id=post_id, user_id=current_user.id, emoji=emoji))
         db.session.commit()
+    return redirect(request.referrer or url_for('feed'))
+
+
+@app.route('/post/<int:post_id>/comment', methods=['POST'])
+@login_required
+def add_comment(post_id):
+    content = request.form.get('content', '').strip()
+    post = db.session.get(Post, post_id)
+    if post and content:
+        db.session.add(PostComment(post_id=post_id, user_id=current_user.id, content=content))
+        db.session.commit()
+        flash('Comment added!', 'success')
+    return redirect(request.referrer or url_for('feed'))
+
+
+@app.route('/comment/<int:comment_id>/delete', methods=['POST'])
+@login_required
+def delete_comment(comment_id):
+    comment = db.session.get(PostComment, comment_id)
+    if comment and (comment.user_id == current_user.id or current_user.is_admin):
+        db.session.delete(comment)
+        db.session.commit()
+        flash('Comment deleted', 'success')
     return redirect(request.referrer or url_for('feed'))
 
 
@@ -460,6 +483,51 @@ def toggle_follow(user_id):
     return redirect(request.referrer or url_for('profile_view', user_id=user_id))
 
 
+@app.route('/profile/friend/<int:user_id>', methods=['POST'])
+@login_required
+def toggle_friend(user_id):
+    target = db.session.get(User, user_id)
+    if not target or target.id == current_user.id:
+        return redirect(request.referrer or url_for('friends'))
+    if current_user.friends.filter_by(id=target.id).first():
+        current_user.friends.remove(target)
+        target.friends.remove(current_user)
+        db.session.commit()
+        flash(f'Removed {target.display_name} from friends', 'success')
+    else:
+        current_user.friends.add(target)
+        target.friends.add(current_user)
+        db.session.commit()
+        flash(f'You are now friends with {target.display_name}!', 'success')
+    return redirect(request.referrer or url_for('profile_view', user_id=user_id))
+
+
+@app.route('/friends')
+@login_required
+def friends():
+    friends_list = current_user.friends.order_by(User.display_name.asc()).all()
+    return render_template('friends.html', friends=friends_list)
+
+
+@app.route('/friends/add', methods=['POST'])
+@login_required
+def friends_add():
+    username = request.form.get('username', '').strip().lstrip('@')
+    target = User.query.filter_by(username=username).first()
+    if not target:
+        flash(f'No user found with username "{username}"', 'error')
+    elif target.id == current_user.id:
+        flash('You cannot add yourself as a friend', 'error')
+    elif current_user.friends.filter_by(id=target.id).first():
+        flash(f'You are already friends with {target.display_name}', 'error')
+    else:
+        current_user.friends.add(target)
+        target.friends.add(current_user)
+        db.session.commit()
+        flash(f'You are now friends with {target.display_name}!', 'success')
+    return redirect(url_for('friends'))
+
+
 @app.route('/profile/edit', methods=['POST'])
 @login_required
 def profile_edit():
@@ -634,6 +702,7 @@ def manage_delete_user(user_id):
         Post.query.filter_by(user_id=user_id).delete()
         PostLike.query.filter_by(user_id=user_id).delete()
         PostReaction.query.filter_by(user_id=user_id).delete()
+        PostComment.query.filter_by(user_id=user_id).delete()
         ChatMessage.query.filter_by(user_id=user_id).delete()
         MovieReview.query.filter_by(user_id=user_id).delete()
         GameReview.query.filter_by(user_id=user_id).delete()
@@ -686,7 +755,7 @@ def manage_delete_game(game_id):
 
 def _db_models():
     return [
-        ('Users', User), ('Posts', Post), ('Post Likes', PostLike), ('Post Reactions', PostReaction),
+        ('Users', User), ('Posts', Post), ('Post Likes', PostLike), ('Post Reactions', PostReaction), ('Post Comments', PostComment),
         ('Chat Messages', ChatMessage), ('Movies', Movie), ('Movie Reviews', MovieReview),
         ('Watchlist', Watchlist), ('Games', Game), ('Game Reviews', GameReview),
         ('Game Library', UserGameLibrary), ('LFG Posts', LfgPost), ('Departments', Department),
@@ -794,8 +863,21 @@ def inject_globals():
         c1, c2 = user.avatar_colors()
         return f'background:linear-gradient(135deg,{c1},{c2});'
 
+    def is_friend(user):
+        if not current_user.is_authenticated or user is None or user.id == current_user.id:
+            return False
+        return current_user.friends.filter_by(id=user.id).first() is not None
+
+    def comment_count(post):
+        return post.comments.count()
+
+    def comments_for(post):
+        return post.comments.order_by(PostComment.created_at.asc()).all()
+
     return {'current_year': datetime.utcnow().year, 'can_like': can_like,
-            'reacted': reacted, 'avatar_style': avatar_style}
+            'reacted': reacted, 'avatar_style': avatar_style,
+            'is_friend': is_friend, 'comment_count': comment_count,
+            'comments_for': comments_for}
 
 
 if __name__ == '__main__':

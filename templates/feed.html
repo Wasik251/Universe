@@ -53,6 +53,34 @@
                 </form>
                 {% endfor %}
             </div>
+            <div class="post-comments">
+                {% set comments = comments_for(post) %}
+                {% if comments %}
+                <div class="comment-list">
+                    {% for comment in comments %}
+                    <div class="comment">
+                        <div class="avatar-xs" style="{{ avatar_style(comment.user) }}">{{ comment.user.initials() }}</div>
+                        <div class="comment-body">
+                            <div class="comment-meta">
+                                <a href="{{ url_for('profile_view', user_id=comment.user.id) }}">{{ comment.user.display_name }}</a>
+                                <span>@{{ comment.user.username }} · {{ comment.created_at | timesince }}</span>
+                                {% if comment.user_id == current_user.id or current_user.is_admin %}
+                                <form method="post" action="{{ url_for('delete_comment', comment_id=comment.id) }}" class="comment-delete">
+                                    <button type="submit" title="Delete comment" onclick="playSound()">✕</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            <p>{{ comment.content }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <form method="post" action="{{ url_for('add_comment', post_id=post.id) }}" class="comment-form">
+                    <input type="text" name="content" maxlength="300" placeholder="Write a comment..." required>
+                    <button type="submit" class="btn btn-primary btn-sm" onclick="playSound()">Comment</button>
+                </form>
+            </div>
         </div>
         {% else %}
         <div class="card empty-state">

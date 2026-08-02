@@ -19,6 +19,7 @@
                 <th>Username</th>
                 <th>Bio</th>
                 <th>Signed Up</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
@@ -33,6 +34,17 @@
                 <td>@{{ user.username }}</td>
                 <td class="users-bio">{{ user.bio or '—' }}</td>
                 <td class="users-date">{{ user.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                <td>
+                    {% if user.id != current_user.id %}
+                    <form method="post" action="{{ url_for('toggle_friend', user_id=user.id) }}">
+                        <button type="submit" class="btn btn-sm {{ 'btn-danger-outline' if is_friend(user) else 'btn-accent' }}" onclick="playSound()">
+                            {{ 'Unfriend' if is_friend(user) else '🤝 Friend' }}
+                        </button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted">You</span>
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>

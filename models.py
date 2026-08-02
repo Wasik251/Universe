@@ -10,6 +10,12 @@ follows = db.Table(
     db.Column('following_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
 )
 
+friends = db.Table(
+    'friends',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('friend_id', db.Integer, db.ForeignKey('user.id'), primary_key=True)
+)
+
 
 AVATAR_PALETTES = [
     ('#e94560', '#ff8a5c'),
@@ -40,11 +46,19 @@ class User(UserMixin, db.Model):
                                 secondaryjoin=(follows.c.following_id == id),
                                 backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
 
+    friends = db.relationship('User', secondary=friends,
+                              primaryjoin=(friends.c.user_id == id),
+                              secondaryjoin=(friends.c.friend_id == id),
+                              lazy='dynamic')
+
     def following_count(self):
         return self.following.count()
 
     def followers_count(self):
         return self.followers.count()
+
+    def friend_count(self):
+        return self.friends.count()
 
     def initials(self):
         words = self.display_name.split()
@@ -66,6 +80,19 @@ class Post(db.Model):
 
     def like_count(self):
         return self.likes.count()
+
+
+class PostComment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    post = db.relationship('Post', backref=db.backref('comments', lazy='dynamic', cascade='all, delete-orphan'))
+    user = db.relationship('User')
+
+    def comment_count(self):
+        return self.post.comments.count()
 
 
 class PostReaction(db.Model):

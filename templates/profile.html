@@ -11,6 +11,7 @@
                 <p>{{ user.bio or 'No bio yet.' }}</p>
                 <div class="profile-stats">
                     <span><strong>{{ user.posts.count() }}</strong> posts</span>
+                    <span><strong>{{ user.friend_count() }}</strong> friends</span>
                     <span><strong>{{ user.followers_count() }}</strong> followers</span>
                     <span><strong>{{ user.following_count() }}</strong> following</span>
                 </div>
@@ -33,11 +34,18 @@
             </form>
         </div>
         {% else %}
-        <form method="post" action="{{ url_for('toggle_follow', user_id=user.id) }}">
-            <button type="submit" class="btn {{ 'btn-accent' if current_user.following.filter_by(id=user.id).first() else 'btn-primary' }}">
-                {{ 'Unfollow' if current_user.following.filter_by(id=user.id).first() else 'Follow' }}
-            </button>
-        </form>
+        <div class="profile-actions">
+            <form method="post" action="{{ url_for('toggle_follow', user_id=user.id) }}">
+                <button type="submit" class="btn {{ 'btn-accent' if current_user.following.filter_by(id=user.id).first() else 'btn-primary' }}">
+                    {{ 'Unfollow' if current_user.following.filter_by(id=user.id).first() else 'Follow' }}
+                </button>
+            </form>
+            <form method="post" action="{{ url_for('toggle_friend', user_id=user.id) }}">
+                <button type="submit" class="btn {{ 'btn-danger-outline' if is_friend(user) else 'btn-accent' }}">
+                    {{ 'Unfriend' if is_friend(user) else 'Add Friend' }} 🤝
+                </button>
+            </form>
+        </div>
         {% endif %}
     </div>
 
