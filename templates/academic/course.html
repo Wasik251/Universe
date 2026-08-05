@@ -3,7 +3,14 @@
 {% block content %}
 <div class="section-header">
     <h1>{{ course.code }} · {{ course.title }}</h1>
-    <a href="{{ url_for('department', dept_id=course.department.id) }}" class="btn btn-ghost btn-sm">{{ course.department.name }}</a>
+    <div class="course-actions">
+        <a href="{{ url_for('department', dept_id=course.department.id) }}" class="btn btn-ghost btn-sm">{{ course.department.name }}</a>
+        <form method="post" action="{{ url_for('toggle_follow_course', course_id=course.id) }}">
+            <button type="submit" class="btn btn-sm {{ 'btn-danger-outline' if following else 'btn-accent' }}" onclick="playSound()">
+                {{ '★ Following' if following else '☆ Follow' }} · {{ course.follower_count() }}
+            </button>
+        </form>
+    </div>
 </div>
 <p class="text-muted">{{ course.description }}</p>
 

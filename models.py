@@ -217,6 +217,19 @@ class Course(db.Model):
     title = db.Column(db.String(150), nullable=False)
     description = db.Column(db.Text, default='')
     semester = db.Column(db.String(20), default='')
+    followers = db.relationship('CourseFollow', backref='course', lazy='dynamic', cascade='all, delete-orphan')
+
+    def follower_count(self):
+        return self.followers.count()
+
+
+class CourseFollow(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    course_id = db.Column(db.Integer, db.ForeignKey('course.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    user = db.relationship('User')
+    __table_args__ = (db.UniqueConstraint('user_id', 'course_id'),)
 
 
 class AcademicNote(db.Model):

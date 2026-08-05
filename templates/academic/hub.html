@@ -6,6 +6,44 @@
     <p class="text-muted">Browse departments, study materials, and discussions</p>
 </div>
 
+<div class="card course-add-card">
+    <h3>➕ Add a Course</h3>
+    <form method="post" action="{{ url_for('add_course') }}" class="course-add-form">
+        <div class="form-row">
+            <input type="text" name="code" class="form-input" placeholder="Course code (e.g. CS101)" required>
+            <input type="text" name="title" class="form-input" placeholder="Course name (e.g. Intro to Programming)" required>
+        </div>
+        <div class="form-row">
+            <select name="department_id" class="form-input">
+                <option value="">Select department...</option>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="semester" class="form-input" placeholder="Semester (optional)">
+        </div>
+        <div class="form-group">
+            <textarea name="description" rows="2" class="form-input" placeholder="Short description (optional)"></textarea>
+        </div>
+        <button type="submit" class="btn btn-accent" onclick="playSound()">Add Course</button>
+    </form>
+</div>
+
+{% if followed_courses %}
+<h2 class="subsection-title">⭐ My Followed Courses</h2>
+<div class="grid">
+    {% for course in followed_courses %}
+    <div class="card course-card">
+        <a href="{{ url_for('course', course_id=course.id) }}">
+            <span class="badge badge-code">{{ course.code }}</span>
+            <h3>{{ course.title }}</h3>
+            <p class="media-meta">{{ course.department.name }} · {{ course.semester }} · {{ course.follower_count() }} following</p>
+        </a>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <h2 class="subsection-title">Departments</h2>
 <div class="grid">
     {% for dept in departments %}
@@ -26,7 +64,7 @@
         <a href="{{ url_for('course', course_id=course.id) }}">
             <span class="badge badge-code">{{ course.code }}</span>
             <h3>{{ course.title }}</h3>
-            <p class="media-meta">{{ course.department.name }} · {{ course.semester }}</p>
+            <p class="media-meta">{{ course.department.name }} · {{ course.semester }} · {{ course.follower_count() }} following</p>
         </a>
     </div>
     {% endfor %}

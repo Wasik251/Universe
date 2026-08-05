@@ -10,7 +10,7 @@ load_dotenv()
 
 from models import (db, User, Post, PostLike, PostReaction, PostComment, ChatMessage, Movie, MovieReview, Watchlist, Game,
                     GameReview, UserGameLibrary, LfgPost, Department, Course,
-                    AcademicNote, PastQuestion, MCQ, DiscussionThread, DiscussionReply)
+                    AcademicNote, PastQuestion, MCQ, DiscussionThread, DiscussionReply, CourseFollow)
 from seed import seed
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -351,7 +351,51 @@ def lfg_create():
 def academic():
     departments = Department.query.all()
     courses = Course.query.all()
-    return render_template('academic/hub.html', departments=departments, courses=courses)
+    followed_ids = {f.course_id for f in CourseFollow.query.filter_by(user_id=current_user.id)}
+    followed_courses = Course.query.join(CourseFollow).filter(CourseFollow.user_id == current_user.id).order_by(CourseFollow.created_at.desc()).all()
+    return render_template('academic/hub.html', departments=departments, courses=courses,
+                           followed_ids=followed_ids, followed_courses=followed_courses)
+
+
+@app.route('/academic/courses/add', methods=['POST'])
+@login_required
+def add_course():
+    code = request.form.get('code', '').strip().upper()
+    title = request.form.get('title', '').strip()
+    department_id = request.form.get('department_id', type=int)
+    semester = request.form.get('semester', '').strip()
+    description = request.form.get('description', '').strip()
+    dept = db.session.get(Department, department_id) if department_id else None
+    if code and title:
+        if not dept:
+            dept = Department.query.first()
+        if dept:
+            db.session.add(Course(department_id=dept.id, code=code, title=title,
+                                  semester=semester, description=description))
+            db.session.commit()
+            flash(f'Course "{title}" added!', 'success')
+        else:
+            flash('No department available yet. Ask an admin to add a department first.', 'error')
+    else:
+        flash('Course code and course name are required', 'error')
+    return redirect(url_for('academic'))
+
+
+@app.route('/academic/courses/<int:course_id>/follow', methods=['POST'])
+@login_required
+def toggle_follow_course(course_id):
+    course = db.session.get(Course, course_id)
+    if course:
+        existing = CourseFollow.query.filter_by(user_id=current_user.id, course_id=course_id).first()
+        if existing:
+            db.session.delete(existing)
+            db.session.commit()
+            flash(f'Unfollowed {course.title}', 'success')
+        else:
+            db.session.add(CourseFollow(user_id=current_user.id, course_id=course_id))
+            db.session.commit()
+            flash(f'You are now following {course.title}!', 'success')
+    return redirect(request.referrer or url_for('course', course_id=course_id))
 
 
 @app.route('/academic/departments/<int:dept_id>')
@@ -375,8 +419,9 @@ def course(course_id):
     past_questions = PastQuestion.query.filter_by(course_id=course_id).all()
     mcqs = MCQ.query.filter_by(course_id=course_id).all()
     threads = DiscussionThread.query.filter_by(course_id=course_id).all()
+    following = CourseFollow.query.filter_by(user_id=current_user.id, course_id=course_id).first() is not None
     return render_template('academic/course.html', course=course, notes=notes,
-                           past_questions=past_questions, mcqs=mcqs, threads=threads)
+                           past_questions=past_questions, mcqs=mcqs, threads=threads, following=following)
 
 
 @app.route('/academic/courses/<int:course_id>/note', methods=['POST'])
@@ -713,6 +758,7 @@ def manage_delete_user(user_id):
         DiscussionReply.query.filter_by(author_id=user_id).delete()
         AcademicNote.query.filter_by(uploaded_by=user_id).delete()
         PastQuestion.query.filter_by(uploaded_by=user_id).delete()
+        CourseFollow.query.filter_by(user_id=user_id).delete()
         db.session.delete(target)
         db.session.commit()
         flash(f'User "{username}" deleted', 'success')
@@ -761,6 +807,7 @@ def _db_models():
         ('Game Library', UserGameLibrary), ('LFG Posts', LfgPost), ('Departments', Department),
         ('Courses', Course), ('Academic Notes', AcademicNote), ('Past Questions', PastQuestion),
         ('MCQs', MCQ), ('Discussion Threads', DiscussionThread), ('Discussion Replies', DiscussionReply),
+        ('Course Follows', CourseFollow),
     ]
 
 
