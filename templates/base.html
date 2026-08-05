@@ -11,31 +11,64 @@
     <nav class="navbar">
         <div class="nav-container">
             <a href="{{ url_for('feed') }}" class="nav-brand">UNIVERSE</a>
-            <div class="nav-links">
-                <a href="{{ url_for('feed') }}">Feed</a>
-                <a href="{{ url_for('chat') }}">Chat</a>
-                <a href="{{ url_for('assistant') }}" class="nav-ai">🤖 AI</a>
-                <a href="{{ url_for('movies') }}">Movies</a>
-                <a href="{{ url_for('games') }}">Games</a>
-                <a href="{{ url_for('academic') }}">Academics</a>
-                <a href="{{ url_for('friends') }}">Friends</a>
-                <a href="{{ url_for('manage') }}">Manage</a>
-                <a href="{{ url_for('profile') }}">Profile</a>
-                <a href="{{ url_for('logout') }}" class="nav-logout" onclick="playSound()">Logout</a>
+            <div class="nav-right">
+                <a href="{{ url_for('assistant') }}" class="nav-pill nav-ai">🤖 AI</a>
+                <a href="{{ url_for('profile') }}" class="nav-profile-link" title="My Profile">
+                    <div class="avatar-xs" style="{{ avatar_style(current_user) }}">{{ current_user.initials() }}</div>
+                </a>
+                <a href="{{ url_for('logout') }}" class="nav-pill nav-logout" onclick="playSound()">Logout</a>
             </div>
         </div>
     </nav>
 
-    <main class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        {% block content %}{% endblock %}
-    </main>
+    <div class="app-layout">
+        <aside class="sidebar sidebar-left">
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Menu</h3>
+                <a href="{{ url_for('feed') }}" class="sidebar-link {{ 'active' if request.endpoint == 'feed' }}">
+                    <span class="sidebar-icon icon-feed">🏠</span> Feed
+                </a>
+                <a href="{{ url_for('chat') }}" class="sidebar-link {{ 'active' if request.endpoint == 'chat' }}">
+                    <span class="sidebar-icon icon-chat">💬</span> Chat
+                </a>
+                <a href="{{ url_for('friends') }}" class="sidebar-link {{ 'active' if request.endpoint in ['friends', 'friends_add'] }}">
+                    <span class="sidebar-icon icon-friends">🤝</span> Friends
+                </a>
+            </div>
+        </aside>
+
+        <main class="container main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </main>
+
+        <aside class="sidebar sidebar-right">
+            <div class="sidebar-section">
+                <h3 class="sidebar-title">Explore</h3>
+                <a href="{{ url_for('movies') }}" class="sidebar-link {{ 'active' if request.endpoint in ['movies', 'movie_detail'] }}">
+                    <span class="sidebar-icon icon-movies">🎬</span> Movies
+                </a>
+                <a href="{{ url_for('games') }}" class="sidebar-link {{ 'active' if request.endpoint in ['games', 'game_detail', 'library', 'lfg'] }}">
+                    <span class="sidebar-icon icon-games">🎮</span> Games
+                </a>
+                <a href="{{ url_for('academic') }}" class="sidebar-link {{ 'active' if request.endpoint in ['academic', 'department', 'course', 'thread', 'add_note', 'add_mcq', 'create_thread', 'reply_thread'] }}">
+                    <span class="sidebar-icon icon-academics">📚</span> Academics
+                </a>
+                <a href="{{ url_for('users') }}" class="sidebar-link {{ 'active' if request.endpoint == 'users' }}">
+                    <span class="sidebar-icon icon-users">👥</span> Users
+                </a>
+                <a href="{{ url_for('manage') }}" class="sidebar-link {{ 'active' if request.endpoint == 'manage' }}">
+                    <span class="sidebar-icon icon-manage">🛠️</span> Manage
+                </a>
+            </div>
+        </aside>
+    </div>
 
     <footer class="site-footer">
         <p>UniVerse © {{ current_year }} · All in one student platform</p>
