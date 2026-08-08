@@ -40,8 +40,22 @@ def load_user(user_id):
     return db.session.get(User, int(user_id))
 
 
+def _run_migrations():
+    try:
+        inspector = db.inspect(db.engine)
+        if 'user' in inspector.get_table_names():
+            cols = {c['name'] for c in inspector.get_columns('user')}
+            if 'spotify_url' not in cols:
+                db.session.execute(db.text("ALTER TABLE user ADD COLUMN spotify_url VARCHAR(500) DEFAULT ''"))
+                db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print('Migration warning:', e)
+
+
 with app.app_context():
     db.create_all()
+    _run_migrations()
     seed()
 
 
