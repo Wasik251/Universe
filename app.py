@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import traceback
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, g
@@ -30,9 +31,21 @@ app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 
 db.init_app(app)
 
+STARTUP_ERROR = None
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+
+@app.route('/__debug')
+def debug_info():
+    return f'<pre>STARTUP_ERROR:\n{STARTUP_ERROR or "none"}</pre>'
+
+
+@app.errorhandler(500)
+def _err500(e):
+    return f'<pre>DEBUG 500:\n{traceback.format_exc()}\n\nSTARTUP:\n{STARTUP_ERROR or "none"}</pre>', 500
 
 
 @login_manager.user_loader
@@ -41,22 +54,26 @@ def load_user(user_id):
 
 
 def _run_migrations():
+    global STARTUP_ERROR
     try:
         inspector = db.inspect(db.engine)
         if 'user' in inspector.get_table_names():
             cols = {c['name'] for c in inspector.get_columns('user')}
             if 'spotify_url' not in cols:
-                db.session.execute(db.text("ALTER TABLE user ADD COLUMN spotify_url VARCHAR(500) DEFAULT ''"))
+                db.session.execute(db.text("ALTER TABLE \"user\" ADD COLUMN \"spotify_url\" VARCHAR(500) DEFAULT ''"))
                 db.session.commit()
     except Exception as e:
         db.session.rollback()
-        print('Migration warning:', e)
+        STARTUP_ERROR = 'migration: ' + traceback.format_exc()
 
 
 with app.app_context():
-    db.create_all()
-    _run_migrations()
-    seed()
+    try:
+        db.create_all()
+        _run_migrations()
+        seed()
+    except Exception as e:
+        STARTUP_ERROR = traceback.format_exc()
 
 
 # ---------- AUTH ----------
