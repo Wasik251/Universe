@@ -261,6 +261,26 @@ def movies():
     return render_template('movies/list.html', movies=movies, watchlist_ids=watchlist_ids, query=query)
 
 
+@app.route('/movies/add', methods=['POST'])
+@login_required
+def movies_add():
+    title = request.form.get('title', '').strip()
+    release_year = request.form.get('release_year', type=int)
+    genre = request.form.get('genre', '').strip()
+    rating = request.form.get('rating', type=float, default=0)
+    description = request.form.get('description', '').strip()
+    image_url = request.form.get('image_url', '').strip()
+    if title:
+        db.session.add(Movie(title=title, release_year=release_year or 2025,
+                             genre=genre or 'Unknown', rating=rating,
+                             description=description, image_url=image_url))
+        db.session.commit()
+        flash(f'Movie "{title}" added!', 'success')
+    else:
+        flash('Movie title is required', 'error')
+    return redirect(url_for('movies'))
+
+
 @app.route('/movies/<int:movie_id>')
 @login_required
 def movie_detail(movie_id):
@@ -313,6 +333,25 @@ def games():
         games = games.filter(Game.title.ilike(f'%{query}%') | Game.genre.ilike(f'%{query}%'))
     games = games.order_by(Game.title.asc()).all()
     return render_template('games/list.html', games=games, query=query)
+
+
+@app.route('/games/add', methods=['POST'])
+@login_required
+def games_add():
+    title = request.form.get('title', '').strip()
+    genre = request.form.get('genre', '').strip()
+    platform = request.form.get('platform', '').strip()
+    rating = request.form.get('rating', type=float, default=0)
+    description = request.form.get('description', '').strip()
+    image_url = request.form.get('image_url', '').strip()
+    if title:
+        db.session.add(Game(title=title, genre=genre or 'Unknown', platform=platform or 'Any',
+                            rating=rating, description=description, image_url=image_url))
+        db.session.commit()
+        flash(f'Game "{title}" added!', 'success')
+    else:
+        flash('Game title is required', 'error')
+    return redirect(url_for('games'))
 
 
 @app.route('/games/<int:game_id>')

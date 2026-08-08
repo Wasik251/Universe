@@ -212,6 +212,12 @@ a:hover { text-decoration: underline; }
     outline: none;
 }
 .search-form input:focus { border-color: var(--accent); }
+.add-form-card { padding: 0.6rem 1rem 1rem; margin-bottom: 1.25rem; }
+.add-form-card summary { display: inline-block; list-style: none; cursor: pointer; user-select: none; }
+.add-form-card summary::-webkit-details-marker { display: none; }
+.add-form-card[open] summary { margin-bottom: 1rem; }
+.add-form { margin-top: 0.25rem; }
+.add-form .form-row { margin-bottom: 0.5rem; }
 
 /* ADMIN BADGE */
 .admin-badge {

@@ -14,6 +14,38 @@
     <button type="submit" class="btn btn-secondary btn-sm" onclick="playSound()">Search</button>
 </form>
 
+<details class="card add-form-card">
+    <summary class="btn btn-accent btn-sm">+ Add a Game</summary>
+    <form method="post" action="{{ url_for('games_add') }}" class="add-form">
+        <div class="form-group">
+            <input type="text" name="title" class="form-input" placeholder="Game title" required>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <input type="text" name="genre" class="form-input" placeholder="Genre">
+            </div>
+            <div class="form-group">
+                <input type="text" name="platform" class="form-input" placeholder="Platform (PC, PS5, ...)">
+            </div>
+            <div class="form-group">
+                <select name="rating" class="form-input">
+                    <option value="0">Rating...</option>
+                    {% for i in range(1, 11) %}
+                    <option value="{{ i }}">{{ i }}/10</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <input type="text" name="image_url" class="form-input" placeholder="Cover image URL (optional)">
+        </div>
+        <div class="form-group">
+            <textarea name="description" rows="2" class="form-input" placeholder="Short description (optional)"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary" onclick="playSound()">Add Game</button>
+    </form>
+</details>
+
 <div class="grid">
     {% for game in games %}
     <div class="card media-card">
