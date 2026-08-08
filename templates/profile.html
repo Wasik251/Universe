@@ -34,17 +34,31 @@
             </form>
         </div>
         {% else %}
+        {% set fs = friend_status(user) %}
         <div class="profile-actions">
             <form method="post" action="{{ url_for('toggle_follow', user_id=user.id) }}">
                 <button type="submit" class="btn {{ 'btn-accent' if current_user.following.filter_by(id=user.id).first() else 'btn-primary' }}">
                     {{ 'Unfollow' if current_user.following.filter_by(id=user.id).first() else 'Follow' }}
                 </button>
             </form>
-            <form method="post" action="{{ url_for('toggle_friend', user_id=user.id) }}">
-                <button type="submit" class="btn {{ 'btn-danger-outline' if is_friend(user) else 'btn-accent' }}">
-                    {{ 'Unfriend' if is_friend(user) else 'Add Friend' }} 🤝
-                </button>
+            {% if fs == 'friends' %}
+            <a href="{{ url_for('dm', user_id=user.id) }}" class="btn btn-accent">💬 Message</a>
+            <form method="post" action="{{ url_for('unfriend', user_id=user.id) }}">
+                <button type="submit" class="btn btn-danger-outline">Unfriend</button>
             </form>
+            {% elif fs == 'requested' %}
+            <form method="post" action="{{ url_for('cancel_friend_request', user_id=user.id) }}">
+                <button type="submit" class="btn btn-ghost">Requested ⏳</button>
+            </form>
+            {% elif fs == 'incoming' %}
+            <form method="post" action="{{ url_for('send_friend_request', user_id=user.id) }}">
+                <button type="submit" class="btn btn-primary">Accept Request ✓</button>
+            </form>
+            {% else %}
+            <form method="post" action="{{ url_for('send_friend_request', user_id=user.id) }}">
+                <button type="submit" class="btn btn-accent">🤝 Add Friend</button>
+            </form>
+            {% endif %}
         </div>
         {% endif %}
     </div>

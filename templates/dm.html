@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Chat with {{ friend.display_name }} - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>{{ friend.display_name }}</h1>
+    <a href="{{ url_for('profile_view', user_id=friend.id) }}" class="btn btn-ghost btn-sm">@{{ friend.username }} · View profile</a>
+</div>
+
+<div class="chat-container dm-container">
+    <div class="chat-messages" id="dm-messages">
+        {% for msg in msgs %}
+        <div class="chat-msg {{ 'user' if msg.sender_id == current_user.id else 'assistant' }}">
+            <div class="chat-bubble">
+                {% if msg.sender_id == current_user.id %}
+                <form method="post" action="{{ url_for('dm_delete', message_id=msg.id) }}" class="msg-delete">
+                    <button type="submit" title="Delete message">✕</button>
+                </form>
+                {% endif %}
+                {{ msg.content }}
+                <div class="chat-meta">{{ msg.created_at | timesince }}</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="chat-empty">
+            <p>No messages yet. Say hi to {{ friend.display_name }}! 👋</p>
+        </div>
+        {% endfor %}
+    </div>
+    <form method="post" action="{{ url_for('dm_send', user_id=friend.id) }}" class="chat-input-row">
+        <input type="text" name="content" class="form-input" placeholder="Type a message..." autocomplete="off" required>
+        <button type="submit" class="btn btn-primary" onclick="playSound()">Send</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const el = document.getElementById('dm-messages');
+if (el) { el.scrollTop = el.scrollHeight; }
+setInterval(() => {
+    fetch(window.location.href, { headers: { 'Accept': 'text/html' } })
+        .then(r => r.text())
+        .then(() => window.location.reload());
+}, 8000);
+</script>
+{% endblock %}

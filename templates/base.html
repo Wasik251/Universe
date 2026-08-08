@@ -31,7 +31,10 @@
                 <a href="{{ url_for('chat') }}" class="sidebar-link {{ 'active' if request.endpoint == 'chat' }}">
                     <span class="sidebar-icon icon-chat">💬</span> Chat
                 </a>
-                <a href="{{ url_for('friends') }}" class="sidebar-link {{ 'active' if request.endpoint in ['friends', 'friends_add'] }}">
+                <a href="{{ url_for('messages') }}" class="sidebar-link {{ 'active' if request.endpoint in ['messages', 'dm', 'dm_send', 'dm_delete'] }}">
+                    <span class="sidebar-icon icon-messages">✉️</span> Messages
+                </a>
+                <a href="{{ url_for('friends') }}" class="sidebar-link {{ 'active' if request.endpoint in ['friends', 'friends_add', 'send_friend_request', 'respond_friend_request', 'cancel_friend_request'] }}">
                     <span class="sidebar-icon icon-friends">🤝</span> Friends
                 </a>
             </div>

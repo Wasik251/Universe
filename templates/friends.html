@@ -10,11 +10,53 @@
     <h3>Add a friend by username</h3>
     <form method="post" action="{{ url_for('friends_add') }}" class="friend-add-form">
         <input type="text" name="username" placeholder="Enter username (e.g. alice)" required>
-        <button type="submit" class="btn btn-accent" onclick="playSound()">Add Friend 🤝</button>
+        <button type="submit" class="btn btn-accent" onclick="playSound()">Send Request 🤝</button>
     </form>
 </div>
 
+{% if incoming %}
+<h2 class="subsection-title">📥 Friend Requests</h2>
+<div class="friend-req-list">
+    {% for req in incoming %}
+    <div class="card friend-req-card">
+        <div class="avatar-sm" style="{{ avatar_style(req.sender) }}">{{ req.sender.initials() }}</div>
+        <div class="friend-req-info">
+            <a href="{{ url_for('profile_view', user_id=req.sender.id) }}">{{ req.sender.display_name }}</a>
+            <span class="text-muted">@{{ req.sender.username }} · {{ req.created_at | timesince }}</span>
+        </div>
+        <form method="post" action="{{ url_for('respond_friend_request', request_id=req.id) }}">
+            <input type="hidden" name="action" value="accept">
+            <button type="submit" class="btn btn-primary btn-sm" onclick="playSound()">Accept ✓</button>
+        </form>
+        <form method="post" action="{{ url_for('respond_friend_request', request_id=req.id) }}">
+            <input type="hidden" name="action" value="decline">
+            <button type="submit" class="btn btn-danger-outline btn-sm" onclick="playSound()">Decline ✕</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if outgoing %}
+<h2 class="subsection-title">📤 Sent Requests</h2>
+<div class="friend-req-list">
+    {% for req in outgoing %}
+    <div class="card friend-req-card">
+        <div class="avatar-sm" style="{{ avatar_style(req.receiver) }}">{{ req.receiver.initials() }}</div>
+        <div class="friend-req-info">
+            <a href="{{ url_for('profile_view', user_id=req.receiver.id) }}">{{ req.receiver.display_name }}</a>
+            <span class="text-muted">@{{ req.receiver.username }} · pending</span>
+        </div>
+        <form method="post" action="{{ url_for('cancel_friend_request', user_id=req.receiver.id) }}">
+            <button type="submit" class="btn btn-ghost btn-sm" onclick="playSound()">Cancel</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 {% if friends %}
+<h2 class="subsection-title">👥 My Friends</h2>
 <div class="friends-grid">
     {% for friend in friends %}
     <div class="card friend-card">
@@ -24,9 +66,12 @@
             <span class="text-muted">@{{ friend.username }}</span>
             <p>{{ friend.bio or 'No bio yet.' }}</p>
         </div>
-        <form method="post" action="{{ url_for('toggle_friend', user_id=friend.id) }}">
-            <button type="submit" class="btn btn-danger-outline btn-sm" onclick="playSound()">Unfriend</button>
-        </form>
+        <div class="friend-actions">
+            <a href="{{ url_for('dm', user_id=friend.id) }}" class="btn btn-accent btn-sm" onclick="playSound()">💬 Message</a>
+            <form method="post" action="{{ url_for('unfriend', user_id=friend.id) }}">
+                <button type="submit" class="btn btn-danger-outline btn-sm" onclick="playSound()">Unfriend</button>
+            </form>
+        </div>
     </div>
     {% endfor %}
 </div>

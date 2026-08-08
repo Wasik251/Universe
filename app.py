@@ -1,7 +1,6 @@
 import os
 import json
 import re
-import traceback
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, g
@@ -12,7 +11,8 @@ load_dotenv()
 
 from models import (db, User, Post, PostLike, PostReaction, PostComment, ChatMessage, Movie, MovieReview, Watchlist, Game,
                     GameReview, UserGameLibrary, LfgPost, Department, Course,
-                    AcademicNote, PastQuestion, MCQ, DiscussionThread, DiscussionReply, CourseFollow)
+                    AcademicNote, PastQuestion, MCQ, DiscussionThread, DiscussionReply, CourseFollow,
+                    FriendRequest, PrivateMessage)
 from seed import seed
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -31,21 +31,9 @@ app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
 
 db.init_app(app)
 
-STARTUP_ERROR = None
-
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-
-
-@app.route('/__debug')
-def debug_info():
-    return f'<pre>STARTUP_ERROR:\n{STARTUP_ERROR or "none"}</pre>'
-
-
-@app.errorhandler(500)
-def _err500(e):
-    return f'<pre>DEBUG 500:\n{traceback.format_exc()}\n\nSTARTUP:\n{STARTUP_ERROR or "none"}</pre>', 500
 
 
 @login_manager.user_loader
@@ -54,7 +42,6 @@ def load_user(user_id):
 
 
 def _run_migrations():
-    global STARTUP_ERROR
     try:
         inspector = db.inspect(db.engine)
         if 'user' in inspector.get_table_names():
@@ -64,7 +51,7 @@ def _run_migrations():
                 db.session.commit()
     except Exception as e:
         db.session.rollback()
-        STARTUP_ERROR = 'migration: ' + traceback.format_exc()
+        print('Migration warning:', e)
 
 
 with app.app_context():
@@ -73,7 +60,7 @@ with app.app_context():
         _run_migrations()
         seed()
     except Exception as e:
-        STARTUP_ERROR = traceback.format_exc()
+        print('Startup error:', e)
 
 
 # ---------- AUTH ----------
@@ -583,28 +570,84 @@ def toggle_follow(user_id):
 
 @app.route('/profile/friend/<int:user_id>', methods=['POST'])
 @login_required
-def toggle_friend(user_id):
+def unfriend(user_id):
+    target = db.session.get(User, user_id)
+    if target and target.id != current_user.id:
+        current_user.friends.remove(target)
+        target.friends.remove(current_user)
+        FriendRequest.query.filter(
+            db.or_(db.and_(FriendRequest.sender_id == current_user.id, FriendRequest.receiver_id == target.id),
+                   db.and_(FriendRequest.sender_id == target.id, FriendRequest.receiver_id == current_user.id))).delete()
+        db.session.commit()
+        flash(f'Removed {target.display_name} from friends', 'success')
+    return redirect(request.referrer or url_for('friends'))
+
+
+@app.route('/friends/request/<int:user_id>', methods=['POST'])
+@login_required
+def send_friend_request(user_id):
     target = db.session.get(User, user_id)
     if not target or target.id == current_user.id:
         return redirect(request.referrer or url_for('friends'))
     if current_user.friends.filter_by(id=target.id).first():
-        current_user.friends.remove(target)
-        target.friends.remove(current_user)
-        db.session.commit()
-        flash(f'Removed {target.display_name} from friends', 'success')
+        flash(f'You are already friends with {target.display_name}', 'error')
     else:
-        current_user.friends.add(target)
-        target.friends.add(current_user)
+        existing_incoming = FriendRequest.query.filter_by(sender_id=target.id, receiver_id=current_user.id).first()
+        if existing_incoming:
+            current_user.friends.add(target)
+            target.friends.add(current_user)
+            db.session.delete(existing_incoming)
+            db.session.commit()
+            flash(f'You and {target.display_name} are now friends!', 'success')
+        elif FriendRequest.query.filter_by(sender_id=current_user.id, receiver_id=target.id).first():
+            flash(f'Friend request to {target.display_name} already sent', 'error')
+        else:
+            db.session.add(FriendRequest(sender_id=current_user.id, receiver_id=target.id))
+            db.session.commit()
+            flash(f'Friend request sent to {target.display_name}!', 'success')
+    return redirect(request.referrer or url_for('friends'))
+
+
+@app.route('/friends/request/cancel/<int:user_id>', methods=['POST'])
+@login_required
+def cancel_friend_request(user_id):
+    req = FriendRequest.query.filter_by(sender_id=current_user.id, receiver_id=user_id).first()
+    if req:
+        db.session.delete(req)
         db.session.commit()
-        flash(f'You are now friends with {target.display_name}!', 'success')
-    return redirect(request.referrer or url_for('profile_view', user_id=user_id))
+        flash('Friend request cancelled', 'success')
+    return redirect(request.referrer or url_for('friends'))
+
+
+@app.route('/friends/respond/<int:request_id>', methods=['POST'])
+@login_required
+def respond_friend_request(request_id):
+    req = db.session.get(FriendRequest, request_id)
+    if not req or req.receiver_id != current_user.id:
+        flash('Friend request not found', 'error')
+        return redirect(url_for('friends'))
+    action = request.form.get('action', '')
+    sender = db.session.get(User, req.sender_id)
+    if action == 'accept':
+        current_user.friends.add(sender)
+        sender.friends.add(current_user)
+        db.session.delete(req)
+        db.session.commit()
+        flash(f'You and {sender.display_name} are now friends!', 'success')
+    elif action == 'decline':
+        db.session.delete(req)
+        db.session.commit()
+        flash(f'Friend request from {sender.display_name} declined', 'success')
+    return redirect(request.referrer or url_for('friends'))
 
 
 @app.route('/friends')
 @login_required
 def friends():
     friends_list = current_user.friends.order_by(User.display_name.asc()).all()
-    return render_template('friends.html', friends=friends_list)
+    incoming = FriendRequest.query.filter_by(receiver_id=current_user.id).order_by(FriendRequest.created_at.desc()).all()
+    outgoing = FriendRequest.query.filter_by(sender_id=current_user.id).order_by(FriendRequest.created_at.desc()).all()
+    return render_template('friends.html', friends=friends_list, incoming=incoming, outgoing=outgoing)
 
 
 @app.route('/friends/add', methods=['POST'])
@@ -618,12 +661,78 @@ def friends_add():
         flash('You cannot add yourself as a friend', 'error')
     elif current_user.friends.filter_by(id=target.id).first():
         flash(f'You are already friends with {target.display_name}', 'error')
+    elif FriendRequest.query.filter_by(sender_id=current_user.id, receiver_id=target.id).first():
+        flash(f'Friend request to {target.display_name} already sent', 'error')
     else:
-        current_user.friends.add(target)
-        target.friends.add(current_user)
-        db.session.commit()
-        flash(f'You are now friends with {target.display_name}!', 'success')
+        existing_incoming = FriendRequest.query.filter_by(sender_id=target.id, receiver_id=current_user.id).first()
+        if existing_incoming:
+            current_user.friends.add(target)
+            target.friends.add(current_user)
+            db.session.delete(existing_incoming)
+            db.session.commit()
+            flash(f'You and {target.display_name} are now friends!', 'success')
+        else:
+            db.session.add(FriendRequest(sender_id=current_user.id, receiver_id=target.id))
+            db.session.commit()
+            flash(f'Friend request sent to {target.display_name}!', 'success')
     return redirect(url_for('friends'))
+
+
+# ---------- MESSAGES (DMs) ----------
+@app.route('/messages')
+@login_required
+def messages():
+    friends_list = current_user.friends.order_by(User.display_name.asc()).all()
+    conversations = []
+    for friend in friends_list:
+        last = PrivateMessage.query.filter(
+            db.or_(db.and_(PrivateMessage.sender_id == current_user.id, PrivateMessage.receiver_id == friend.id),
+                   db.and_(PrivateMessage.sender_id == friend.id, PrivateMessage.receiver_id == current_user.id)))\
+            .order_by(PrivateMessage.created_at.desc()).first()
+        unread = PrivateMessage.query.filter_by(sender_id=friend.id, receiver_id=current_user.id).count()
+        conversations.append({'friend': friend, 'last': last, 'unread': unread})
+    conversations.sort(key=lambda c: c['last'].created_at if c['last'] else datetime.min, reverse=True)
+    return render_template('messages.html', conversations=conversations)
+
+
+@app.route('/dm/<int:user_id>')
+@login_required
+def dm(user_id):
+    friend = db.session.get(User, user_id)
+    if not friend:
+        flash('User not found', 'error')
+        return redirect(url_for('messages'))
+    if friend.id != current_user.id and not current_user.friends.filter_by(id=friend.id).first():
+        flash('You can only chat with friends. Add them first!', 'error')
+        return redirect(url_for('messages'))
+    msgs = PrivateMessage.query.filter(
+        db.or_(db.and_(PrivateMessage.sender_id == current_user.id, PrivateMessage.receiver_id == friend.id),
+               db.and_(PrivateMessage.sender_id == friend.id, PrivateMessage.receiver_id == current_user.id)))\
+        .order_by(PrivateMessage.created_at.asc()).all()
+    return render_template('dm.html', friend=friend, msgs=msgs)
+
+
+@app.route('/dm/<int:user_id>/send', methods=['POST'])
+@login_required
+def dm_send(user_id):
+    friend = db.session.get(User, user_id)
+    content = request.form.get('content', '').strip()
+    if friend and content and friend.id != current_user.id and current_user.friends.filter_by(id=friend.id).first():
+        db.session.add(PrivateMessage(sender_id=current_user.id, receiver_id=friend.id, content=content))
+        db.session.commit()
+    return redirect(url_for('dm', user_id=user_id))
+
+
+@app.route('/dm/message/<int:message_id>/delete', methods=['POST'])
+@login_required
+def dm_delete(message_id):
+    msg = db.session.get(PrivateMessage, message_id)
+    if msg and msg.sender_id == current_user.id:
+        other = msg.receiver_id if msg.sender_id == current_user.id else msg.sender_id
+        db.session.delete(msg)
+        db.session.commit()
+        return redirect(url_for('dm', user_id=other))
+    return redirect(request.referrer or url_for('messages'))
 
 
 @app.route('/profile/edit', methods=['POST'])
@@ -830,6 +939,8 @@ def manage_delete_user(user_id):
         AcademicNote.query.filter_by(uploaded_by=user_id).delete()
         PastQuestion.query.filter_by(uploaded_by=user_id).delete()
         CourseFollow.query.filter_by(user_id=user_id).delete()
+        FriendRequest.query.filter(db.or_(FriendRequest.sender_id == user_id, FriendRequest.receiver_id == user_id)).delete()
+        PrivateMessage.query.filter(db.or_(PrivateMessage.sender_id == user_id, PrivateMessage.receiver_id == user_id)).delete()
         db.session.delete(target)
         db.session.commit()
         flash(f'User "{username}" deleted', 'success')
@@ -878,7 +989,7 @@ def _db_models():
         ('Game Library', UserGameLibrary), ('LFG Posts', LfgPost), ('Departments', Department),
         ('Courses', Course), ('Academic Notes', AcademicNote), ('Past Questions', PastQuestion),
         ('MCQs', MCQ), ('Discussion Threads', DiscussionThread), ('Discussion Replies', DiscussionReply),
-        ('Course Follows', CourseFollow),
+        ('Course Follows', CourseFollow), ('Friend Requests', FriendRequest), ('Private Messages', PrivateMessage),
     ]
 
 
@@ -1017,10 +1128,22 @@ def inject_globals():
             return g.comment_map.get(post.id, [])
         return post.comments.order_by(PostComment.created_at.asc()).all()
 
+    def friend_status(user):
+        if not current_user.is_authenticated or user is None or user.id == current_user.id:
+            return 'self'
+        if current_user.friends.filter_by(id=user.id).first():
+            return 'friends'
+        if FriendRequest.query.filter_by(sender_id=current_user.id, receiver_id=user.id).first():
+            return 'requested'
+        if FriendRequest.query.filter_by(sender_id=user.id, receiver_id=current_user.id).first():
+            return 'incoming'
+        return 'none'
+
     return {'current_year': datetime.utcnow().year, 'can_like': can_like,
             'reacted': reacted, 'avatar_style': avatar_style,
             'is_friend': is_friend, 'comment_count': comment_count,
-            'comments_for': comments_for, 'react_count': react_count}
+            'comments_for': comments_for, 'react_count': react_count,
+            'friend_status': friend_status}
 
 
 if __name__ == '__main__':

@@ -774,6 +774,45 @@ body {
 .icon-academics { background: rgba(16,185,129,0.22); }
 .icon-users { background: rgba(74,108,255,0.22); }
 .icon-manage { background: rgba(255,77,109,0.22); }
+.icon-messages { background: rgba(255,209,102,0.22); }
+
+/* FRIEND REQUESTS */
+.friend-req-list { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.25rem; }
+.friend-req-card { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0; flex-wrap: wrap; }
+.friend-req-info { flex: 1; min-width: 120px; }
+.friend-req-info a { font-weight: 600; color: var(--text-primary); }
+.friend-req-info span { display: block; font-size: 0.8rem; }
+.friend-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; justify-content: center; }
+.users-actions { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+
+/* CONVERSATIONS (Messages) */
+.conv-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.conv-card {
+    display: flex; align-items: center; gap: 0.75rem;
+    color: var(--text-primary); text-decoration: none; margin-bottom: 0;
+    transition: border-color 0.2s, transform 0.2s;
+}
+.conv-card:hover { text-decoration: none; border-color: var(--accent-3); transform: translateX(3px); }
+.conv-card.conv-unread { border-color: rgba(233,69,96,0.6); background: linear-gradient(90deg, rgba(233,69,96,0.12), rgba(26,26,62,0.95)); }
+.conv-info { flex: 1; min-width: 0; }
+.conv-top { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.conv-top strong { font-size: 0.95rem; }
+.conv-top span { font-size: 0.75rem; }
+.conv-preview { color: var(--text-secondary); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.unread-badge {
+    min-width: 20px; height: 20px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700; padding: 0 5px;
+}
+
+/* DM CHAT */
+.dm-container { height: 70vh; }
+.msg-delete { display: inline-block; float: right; margin-left: 0.5rem; }
+.msg-delete button { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem; }
+.msg-delete button:hover { color: var(--danger); }
+.chat-meta { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; }
+.chat-empty { text-align: center; color: var(--text-muted); margin: auto; }
 
 /* ADD COURSE CARD */
 .course-add-card {

@@ -36,11 +36,27 @@
                 <td class="users-date">{{ user.created_at.strftime('%b %d, %Y %H:%M') }}</td>
                 <td>
                     {% if user.id != current_user.id %}
-                    <form method="post" action="{{ url_for('toggle_friend', user_id=user.id) }}">
-                        <button type="submit" class="btn btn-sm {{ 'btn-danger-outline' if is_friend(user) else 'btn-accent' }}" onclick="playSound()">
-                            {{ 'Unfriend' if is_friend(user) else '🤝 Friend' }}
-                        </button>
-                    </form>
+                        {% set fs = friend_status(user) %}
+                        <div class="users-actions">
+                        {% if fs == 'friends' %}
+                            <a href="{{ url_for('dm', user_id=user.id) }}" class="btn btn-accent btn-sm" onclick="playSound()">💬 Message</a>
+                            <form method="post" action="{{ url_for('unfriend', user_id=user.id) }}">
+                                <button type="submit" class="btn btn-danger-outline btn-sm" onclick="playSound()">Unfriend</button>
+                            </form>
+                        {% elif fs == 'requested' %}
+                            <form method="post" action="{{ url_for('cancel_friend_request', user_id=user.id) }}">
+                                <button type="submit" class="btn btn-ghost btn-sm" onclick="playSound()">Requested ⏳</button>
+                            </form>
+                        {% elif fs == 'incoming' %}
+                            <form method="post" action="{{ url_for('send_friend_request', user_id=user.id) }}">
+                                <button type="submit" class="btn btn-primary btn-sm" onclick="playSound()">Accept ✓</button>
+                            </form>
+                        {% else %}
+                            <form method="post" action="{{ url_for('send_friend_request', user_id=user.id) }}">
+                                <button type="submit" class="btn btn-accent btn-sm" onclick="playSound()">🤝 Add Friend</button>
+                            </form>
+                        {% endif %}
+                        </div>
                     {% else %}
                     <span class="text-muted">You</span>
                     {% endif %}

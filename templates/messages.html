@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Messages - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>💬 Messages</h1>
+    <p class="text-muted">Chat privately with your friends</p>
+</div>
+
+{% if conversations %}
+<div class="conv-list">
+    {% for conv in conversations %}
+    <a href="{{ url_for('dm', user_id=conv.friend.id) }}" class="card conv-card {{ 'conv-unread' if conv.unread }}">
+        <div class="avatar-sm" style="{{ avatar_style(conv.friend) }}">{{ conv.friend.initials() }}</div>
+        <div class="conv-info">
+            <div class="conv-top">
+                <strong>{{ conv.friend.display_name }}</strong>
+                <span class="text-muted">{{ conv.last.created_at | timesince if conv.last else '' }}</span>
+            </div>
+            <p class="conv-preview">
+                {% if conv.last %}
+                    {% if conv.last.sender_id == current_user.id %}You: {% endif %}{{ conv.last.content[:60] }}
+                {% else %}
+                    Say hi to {{ conv.friend.display_name }}!
+                {% endif %}
+            </p>
+        </div>
+        {% if conv.unread %}
+        <span class="unread-badge">{{ conv.unread }}</span>
+        {% endif %}
+    </a>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card empty-state">
+    <p>You have no friends to chat with yet. Go to <a href="{{ url_for('friends') }}">Friends</a> and add some!</p>
+</div>
+{% endif %}
+{% endblock %}
