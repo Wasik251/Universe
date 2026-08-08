@@ -1,8 +1,9 @@
 import os
 import json
+import re
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, g
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -54,6 +55,12 @@ def register():
         password = request.form.get('password', '')
         confirm = request.form.get('confirm_password', '')
         dob = request.form.get('dob', '').strip()
+        if not dob:
+            dob_day = request.form.get('dob_day', '').strip()
+            dob_month = request.form.get('dob_month', '').strip()
+            dob_year = request.form.get('dob_year', '').strip()
+            if dob_day.isdigit() and dob_month.isdigit() and dob_year.isdigit():
+                dob = f'{int(dob_year):04d}-{int(dob_month):02d}-{int(dob_day):02d}'
 
         dob_date = None
         try:
@@ -131,6 +138,21 @@ def index():
 @login_required
 def feed():
     posts = Post.query.order_by(Post.created_at.desc()).all()
+    ids = [p.id for p in posts]
+    g.user_like_ids = set()
+    g.user_reacted = set()
+    g.reaction_map = {}
+    g.comment_map = {}
+    if ids:
+        g.user_like_ids = {pl.post_id for pl in PostLike.query.filter(
+            PostLike.post_id.in_(ids), PostLike.user_id == current_user.id)}
+        g.user_reacted = {(r.post_id, r.emoji) for r in PostReaction.query.filter(
+            PostReaction.post_id.in_(ids), PostReaction.user_id == current_user.id)}
+        for r in PostReaction.query.filter(PostReaction.post_id.in_(ids)).all():
+            g.reaction_map.setdefault(r.post_id, {})
+            g.reaction_map[r.post_id][r.emoji] = g.reaction_map[r.post_id].get(r.emoji, 0) + 1
+        for c in PostComment.query.filter(PostComment.post_id.in_(ids)).order_by(PostComment.created_at.asc()).all():
+            g.comment_map.setdefault(c.post_id, []).append(c)
     return render_template('feed.html', posts=posts)
 
 
@@ -583,6 +605,24 @@ def profile_edit():
     return redirect(url_for('profile'))
 
 
+# ---------- MUSIC ----------
+@app.route('/music')
+@login_required
+def music():
+    musicians = User.query.filter(User.spotify_url != '').order_by(User.display_name.asc()).all()
+    return render_template('music.html', musicians=musicians)
+
+
+@app.route('/music/update', methods=['POST'])
+@login_required
+def music_update():
+    url = request.form.get('spotify_url', '').strip()
+    current_user.spotify_url = url
+    db.session.commit()
+    flash('Your Spotify link has been saved!', 'success')
+    return redirect(url_for('music'))
+
+
 # ---------- CHAT ----------
 @app.route('/chat')
 @login_required
@@ -880,6 +920,18 @@ def _manage_panel():
 
 
 # ---------- TEMPLATE HELPERS ----------
+@app.template_filter('spotify_embed')
+def spotify_embed(url):
+    if not url:
+        return ''
+    if 'embed/' in url:
+        return url
+    m = re.search(r'open\.spotify\.com/(playlist|track|album|artist|show|episode)/([A-Za-z0-9]+)', url)
+    if m:
+        return f'https://open.spotify.com/embed/{m.group(1)}/{m.group(2)}'
+    return url
+
+
 @app.template_filter('timesince')
 def timesince(dt):
     diff = datetime.utcnow() - dt
@@ -901,10 +953,19 @@ def timesince(dt):
 @app.context_processor
 def inject_globals():
     def can_like(post):
+        if hasattr(g, 'user_like_ids'):
+            return post.id in g.user_like_ids
         return PostLike.query.filter_by(post_id=post.id, user_id=current_user.id).first() is not None if current_user.is_authenticated else False
 
     def reacted(post, emoji):
+        if hasattr(g, 'user_reacted'):
+            return (post.id, emoji) in g.user_reacted
         return PostReaction.query.filter_by(post_id=post.id, user_id=current_user.id, emoji=emoji).first() is not None if current_user.is_authenticated else False
+
+    def react_count(post, emoji):
+        if hasattr(g, 'reaction_map'):
+            return g.reaction_map.get(post.id, {}).get(emoji, 0)
+        return post.reactions.filter_by(emoji=emoji).count()
 
     def avatar_style(user):
         c1, c2 = user.avatar_colors()
@@ -916,15 +977,19 @@ def inject_globals():
         return current_user.friends.filter_by(id=user.id).first() is not None
 
     def comment_count(post):
+        if hasattr(g, 'comment_map'):
+            return len(g.comment_map.get(post.id, []))
         return post.comments.count()
 
     def comments_for(post):
+        if hasattr(g, 'comment_map'):
+            return g.comment_map.get(post.id, [])
         return post.comments.order_by(PostComment.created_at.asc()).all()
 
     return {'current_year': datetime.utcnow().year, 'can_like': can_like,
             'reacted': reacted, 'avatar_style': avatar_style,
             'is_friend': is_friend, 'comment_count': comment_count,
-            'comments_for': comments_for}
+            'comments_for': comments_for, 'react_count': react_count}
 
 
 if __name__ == '__main__':

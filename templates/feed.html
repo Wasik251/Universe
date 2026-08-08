@@ -48,7 +48,7 @@
                 <form method="post" action="{{ url_for('react_post', post_id=post.id) }}">
                     <input type="hidden" name="emoji" value="{{ emoji }}">
                     <button type="submit" class="reaction-btn {{ 'reacted' if reacted(post, emoji) }}" onclick="playSound()">
-                        {{ emoji }} <span>{{ post.reactions.filter_by(emoji=emoji).count() }}</span>
+                        {{ emoji }} <span>{{ react_count(post, emoji) }}</span>
                     </button>
                 </form>
                 {% endfor %}

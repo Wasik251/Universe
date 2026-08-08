@@ -38,6 +38,7 @@ class User(UserMixin, db.Model):
     age = db.Column(db.Integer, default=0)
     date_of_birth = db.Column(db.String(10), default='')
     bio = db.Column(db.String(500), default='')
+    spotify_url = db.Column(db.String(500), default='')
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

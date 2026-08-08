@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Music - UniVerse{% endblock %}
+{% block content %}
+<div class="section-header">
+    <h1>🎵 Music</h1>
+    <p class="text-muted">Share and discover Spotify with the community</p>
+</div>
+
+<div class="card music-add-card">
+    <h3>Link your Spotify</h3>
+    <form method="post" action="{{ url_for('music_update') }}" class="music-add-form">
+        <input type="url" name="spotify_url" placeholder="Paste your Spotify link (playlist, track, album...)" value="{{ current_user.spotify_url }}">
+        <button type="submit" class="btn btn-accent" onclick="playSound()">Save Link 🎧</button>
+    </form>
+    {% if current_user.spotify_url %}
+    <small class="text-muted">Your link: <a href="{{ current_user.spotify_url }}" target="_blank" rel="noopener">{{ current_user.spotify_url }}</a></small>
+    {% endif %}
+</div>
+
+{% if musicians %}
+<h2 class="subsection-title">Community Playlists</h2>
+<div class="music-grid">
+    {% for musician in musicians %}
+    <div class="card music-card">
+        <div class="music-header">
+            <div class="avatar-sm" style="{{ avatar_style(musician) }}">{{ musician.initials() }}</div>
+            <div>
+                <a href="{{ url_for('profile_view', user_id=musician.id) }}" class="music-name">{{ musician.display_name }}</a>
+                <span class="text-muted">@{{ musician.username }}</span>
+            </div>
+        </div>
+        {% if musician.spotify_url | spotify_embed %}
+        <div class="spotify-embed">
+            <iframe src="{{ musician.spotify_url | spotify_embed }}" width="100%" height="152" frameborder="0" allowfullscreen allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Spotify player"></iframe>
+        </div>
+        {% endif %}
+        <a href="{{ musician.spotify_url }}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm btn-block">▶ Open on Spotify</a>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card empty-state">
+    <p>No music shared yet. Be the first to link your Spotify above! 🎧</p>
+</div>
+{% endif %}
+{% endblock %}

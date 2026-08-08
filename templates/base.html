@@ -57,6 +57,9 @@
                 <a href="{{ url_for('games') }}" class="sidebar-link {{ 'active' if request.endpoint in ['games', 'game_detail', 'library', 'lfg'] }}">
                     <span class="sidebar-icon icon-games">🎮</span> Games
                 </a>
+                <a href="{{ url_for('music') }}" class="sidebar-link {{ 'active' if request.endpoint == 'music' }}">
+                    <span class="sidebar-icon icon-music">🎵</span> Music
+                </a>
                 <a href="{{ url_for('academic') }}" class="sidebar-link {{ 'active' if request.endpoint in ['academic', 'department', 'course', 'thread', 'add_note', 'add_mcq', 'create_thread', 'reply_thread'] }}">
                     <span class="sidebar-icon icon-academics">📚</span> Academics
                 </a>
