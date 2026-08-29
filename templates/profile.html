@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% from "_macros.html" import avatar %}
 {% block title %}{{ user.display_name }} - UniVerse{% endblock %}
 {% block content %}
 <div class="profile-layout">
     <div class="card profile-card">
         <div class="profile-header">
-            <div class="avatar-lg" style="{{ avatar_style(user) }}">{{ user.initials() }}</div>
+            {{ avatar(user, 'lg') }}
             <div class="profile-info">
                 <h1>{{ user.display_name }} {% if user.is_admin %}<span class="admin-badge">ADMIN</span>{% endif %}</h1>
                 <p class="text-muted">@{{ user.username }}</p>
@@ -21,7 +22,7 @@
         {% if user.id == current_user.id %}
         <div class="profile-edit">
             <h3>Edit Profile</h3>
-            <form method="post" action="{{ url_for('profile_edit') }}">
+            <form method="post" action="{{ url_for('profile_edit') }}" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="display_name">Display Name</label>
                     <input type="text" name="display_name" id="display_name" class="form-input" value="{{ user.display_name }}">
@@ -29,6 +30,10 @@
                 <div class="form-group">
                     <label for="bio">Bio</label>
                     <textarea name="bio" id="bio" rows="3" class="form-input">{{ user.bio }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="avatar">Profile Picture</label>
+                    <input type="file" name="avatar" id="avatar" accept="image/*" class="form-input">
                 </div>
                 <button type="submit" class="btn btn-primary btn-sm">Save</button>
             </form>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import avatar %}
 {% block title %}Messages - UniVerse{% endblock %}
 {% block content %}
 <div class="section-header">
@@ -10,7 +11,7 @@
 <div class="conv-list">
     {% for conv in conversations %}
     <a href="{{ url_for('dm', user_id=conv.friend.id) }}" class="card conv-card {{ 'conv-unread' if conv.unread }}">
-        <div class="avatar-sm" style="{{ avatar_style(conv.friend) }}">{{ conv.friend.initials() }}</div>
+        {{ avatar(conv.friend, 'sm') }}
         <div class="conv-info">
             <div class="conv-top">
                 <strong>{{ conv.friend.display_name }}</strong>

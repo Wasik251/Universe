@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import avatar %}
 {% block title %}Chat - UniVerse{% endblock %}
 {% block content %}
 <div class="section-header">
@@ -11,11 +12,14 @@
         {% for msg in messages %}
         <div class="chat-msg {{ 'user' if msg.user_id == current_user.id else 'assistant' }}">
             {% if msg.user_id != current_user.id %}
-            <div class="avatar-sm chat-avatar" style="{{ avatar_style(msg.user) }}">{{ msg.user.initials() }}</div>
+            {{ avatar(msg.user, 'sm', 'chat-avatar') }}
             {% endif %}
             <div class="chat-bubble chat-color-{{ msg.user_id % 5 }}">
                 <div class="chat-meta">{{ msg.user.display_name }} · {{ msg.created_at.strftime('%H:%M') }}</div>
                 {{ msg.content }}
+                {% if has_media('chat', msg.id) %}
+                <img src="{{ media_url('chat', msg.id) }}" alt="Photo" class="chat-img" loading="lazy">
+                {% endif %}
             </div>
         </div>
         {% else %}
@@ -25,10 +29,15 @@
         </div>
         {% endfor %}
     </div>
-    <form method="post" action="{{ url_for('chat_send') }}" class="chat-input-row">
-        <input type="text" name="content" class="form-input" placeholder="Type a message..." autocomplete="off" required>
+    <form method="post" action="{{ url_for('chat_send') }}" enctype="multipart/form-data" class="chat-input-row">
+        <input type="text" name="content" class="form-input" placeholder="Type a message..." autocomplete="off">
+        <label class="chat-photo" title="Upload a photo">
+            🖼️
+            <input type="file" name="image" accept="image/*" class="hidden-input" id="chat-image-input">
+        </label>
         <button type="submit" class="btn btn-primary" onclick="playSound()">Send</button>
     </form>
+    <div class="chat-preview" id="chat-image-preview"></div>
 </div>
 {% endblock %}
 
@@ -36,6 +45,17 @@
 <script>
 const messagesEl = document.getElementById('chat-messages');
 if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+const chatImgInput = document.getElementById('chat-image-input');
+const chatImgPreview = document.getElementById('chat-image-preview');
+if (chatImgInput && chatImgPreview) {
+    chatImgInput.addEventListener('change', () => {
+        const f = chatImgInput.files[0];
+        if (!f) { chatImgPreview.innerHTML = ''; return; }
+        const reader = new FileReader();
+        reader.onload = (e) => { chatImgPreview.innerHTML = '<img src="' + e.target.result + '" alt="Photo preview">'; };
+        reader.readAsDataURL(f);
+    });
+}
 setInterval(() => {
     fetch(window.location.href)
         .then(r => r.text())

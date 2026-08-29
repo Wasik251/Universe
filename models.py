@@ -304,3 +304,12 @@ class DiscussionReply(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     author = db.relationship('User')
+
+
+class Media(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    owner_type = db.Column(db.String(20), nullable=False, index=True)
+    owner_id = db.Column(db.Integer, nullable=False)
+    data = db.Column(db.LargeBinary, nullable=False)
+    mime = db.Column(db.String(60), default='image/jpeg')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

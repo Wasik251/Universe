@@ -1,26 +1,32 @@
 {% extends "base.html" %}
+{% from "_macros.html" import avatar %}
 {% block title %}Feed - UniVerse{% endblock %}
 {% block content %}
 <div class="feed-layout">
     <div class="card post-create">
         <div class="post-create-header">
-            <div class="avatar-sm" style="{{ avatar_style(current_user) }}">{{ current_user.initials() }}</div>
+            {{ avatar(current_user, 'sm') }}
             <h3>What's happening?</h3>
         </div>
-        <form method="post" action="{{ url_for('create_post') }}">
+        <form method="post" action="{{ url_for('create_post') }}" enctype="multipart/form-data">
             <textarea name="content" id="post-content" rows="3" maxlength="500" placeholder="Share something with the community..." required></textarea>
             <div class="post-create-footer">
+                <label class="btn btn-ghost btn-sm file-btn" title="Add a picture">
+                    🖼️ Picture
+                    <input type="file" name="image" accept="image/*" id="post-image-input" class="hidden-input">
+                </label>
                 <span class="char-count"><span id="char-count">0</span>/500</span>
                 <button type="submit" class="btn btn-primary" onclick="playSound()">Post</button>
             </div>
         </form>
+        <div class="post-preview" id="post-preview"></div>
     </div>
 
     <div class="posts-feed">
         {% for post in posts %}
         <div class="card post post-accent-{{ loop.index0 % 6 }}">
             <div class="post-header">
-                <div class="avatar-sm" style="{{ avatar_style(post.author) }}">{{ post.author.initials() }}</div>
+                {{ avatar(post.author, 'sm') }}
                 <div class="post-author-info">
                     <a href="{{ url_for('profile_view', user_id=post.author.id) }}">{{ post.author.display_name }}</a>
                     <small>@{{ post.author.username }} · {{ post.created_at | timesince }}</small>
@@ -29,6 +35,9 @@
             <div class="post-content">
                 <p>{{ post.content }}</p>
             </div>
+            {% if has_media('post', post.id) %}
+            <img src="{{ media_url('post', post.id) }}" alt="Post image" class="post-image" loading="lazy">
+            {% endif %}
             <div class="post-actions">
                 <form method="post" action="{{ url_for('like_post', post_id=post.id) }}">
                     <button type="submit" class="btn-action like-btn {{ 'liked' if can_like(post) }}" onclick="playSound()">
@@ -59,7 +68,7 @@
                 <div class="comment-list">
                     {% for comment in comments %}
                     <div class="comment">
-                        <div class="avatar-xs" style="{{ avatar_style(comment.user) }}">{{ comment.user.initials() }}</div>
+                        {{ avatar(comment.user, 'xs') }}
                         <div class="comment-body">
                             <div class="comment-meta">
                                 <a href="{{ url_for('profile_view', user_id=comment.user.id) }}">{{ comment.user.display_name }}</a>
@@ -97,6 +106,17 @@ const ta = document.getElementById('post-content');
 const counter = document.getElementById('char-count');
 if (ta && counter) {
     ta.addEventListener('input', () => { counter.textContent = ta.value.length; });
+}
+const imgInput = document.getElementById('post-image-input');
+const preview = document.getElementById('post-preview');
+if (imgInput && preview) {
+    imgInput.addEventListener('change', () => {
+        const f = imgInput.files[0];
+        if (!f) { preview.innerHTML = ''; return; }
+        const reader = new FileReader();
+        reader.onload = (e) => { preview.innerHTML = '<img src="' + e.target.result + '" class="post-image" alt="Preview">'; };
+        reader.readAsDataURL(f);
+    });
 }
 function sharePost(id) {
     const url = window.location.origin + '/post/' + id + '/like';

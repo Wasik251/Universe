@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import avatar %}
 {% block title %}Looking For Group - UniVerse{% endblock %}
 {% block content %}
 <div class="section-header">
@@ -37,7 +38,7 @@
     {% for post in posts %}
     <div class="card lfg-card">
         <div class="post-header">
-            <div class="avatar-sm" style="{{ avatar_style(post.user) }}">{{ post.user.initials() }}</div>
+            {{ avatar(post.user, 'sm') }}
             <div class="post-author-info">
                 <strong>{{ post.title }}</strong>
                 <small>{{ post.user.display_name }} · {{ post.game.title }} · {{ post.created_at | timesince }}</small>

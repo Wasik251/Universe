@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import avatar %}
 {% block title %}{{ thread.title }} - UniVerse{% endblock %}
 {% block content %}
 <div class="section-header">
@@ -8,7 +9,7 @@
 
 <div class="card">
     <div class="post-header">
-        <div class="avatar-sm" style="{{ avatar_style(thread.author) }}">{{ thread.author.initials() }}</div>
+        {{ avatar(thread.author, 'sm') }}
         <div class="post-author-info">
             <a href="{{ url_for('profile_view', user_id=thread.author.id) }}">{{ thread.author.display_name }}</a>
             <small>@{{ thread.author.username }} · {{ thread.created_at.strftime('%b %d, %Y') }}</small>

@@ -6,6 +6,8 @@
         <div class="detail-top">
             {% if game.image_url %}
             <img src="{{ game.image_url }}" alt="{{ game.title }}" class="detail-image" onerror="this.style.display='none'">
+            {% elif has_media('game', game.id) %}
+            <img src="{{ media_url('game', game.id) }}" alt="{{ game.title }}" class="detail-image">
             {% endif %}
             <div class="detail-info">
                 <h1>{{ game.title }}</h1>

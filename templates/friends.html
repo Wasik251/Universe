@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import avatar %}
 {% block title %}Friends - UniVerse{% endblock %}
 {% block content %}
 <div class="section-header">
@@ -19,7 +20,7 @@
 <div class="friend-req-list">
     {% for req in incoming %}
     <div class="card friend-req-card">
-        <div class="avatar-sm" style="{{ avatar_style(req.sender) }}">{{ req.sender.initials() }}</div>
+        {{ avatar(req.sender, 'sm') }}
         <div class="friend-req-info">
             <a href="{{ url_for('profile_view', user_id=req.sender.id) }}">{{ req.sender.display_name }}</a>
             <span class="text-muted">@{{ req.sender.username }} · {{ req.created_at | timesince }}</span>
@@ -42,7 +43,7 @@
 <div class="friend-req-list">
     {% for req in outgoing %}
     <div class="card friend-req-card">
-        <div class="avatar-sm" style="{{ avatar_style(req.receiver) }}">{{ req.receiver.initials() }}</div>
+        {{ avatar(req.receiver, 'sm') }}
         <div class="friend-req-info">
             <a href="{{ url_for('profile_view', user_id=req.receiver.id) }}">{{ req.receiver.display_name }}</a>
             <span class="text-muted">@{{ req.receiver.username }} · pending</span>
@@ -60,7 +61,7 @@
 <div class="friends-grid">
     {% for friend in friends %}
     <div class="card friend-card">
-        <div class="avatar-md" style="{{ avatar_style(friend) }}">{{ friend.initials() }}</div>
+        {{ avatar(friend, 'md') }}
         <div class="friend-info">
             <a href="{{ url_for('profile_view', user_id=friend.id) }}">{{ friend.display_name }}</a>
             <span class="text-muted">@{{ friend.username }}</span>

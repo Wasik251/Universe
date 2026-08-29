@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import avatar %}
 {% block title %}Manage - UniVerse{% endblock %}
 {% block content %}
 {% if locked %}
@@ -28,7 +29,7 @@
 <div class="manage-grid">
     <div class="card">
         <h3>➕ Add a Movie</h3>
-        <form method="post" action="{{ url_for('manage_add_movie') }}">
+        <form method="post" action="{{ url_for('manage_add_movie') }}" enctype="multipart/form-data">
             <div class="form-group">
                 <input type="text" name="title" class="form-input" placeholder="Movie title" required>
             </div>
@@ -45,13 +46,16 @@
             <div class="form-group">
                 <input type="url" name="image_url" class="form-input" placeholder="Poster image URL (optional)">
             </div>
+            <div class="form-group">
+                <input type="file" name="image" accept="image/*" class="form-input">
+            </div>
             <button type="submit" class="btn btn-primary" onclick="playSound()">Add Movie</button>
         </form>
     </div>
 
     <div class="card">
         <h3>🎮 Add a Game</h3>
-        <form method="post" action="{{ url_for('manage_add_game') }}">
+        <form method="post" action="{{ url_for('manage_add_game') }}" enctype="multipart/form-data">
             <div class="form-group">
                 <input type="text" name="title" class="form-input" placeholder="Game title" required>
             </div>
@@ -69,6 +73,9 @@
             </div>
             <div class="form-group">
                 <input type="url" name="image_url" class="form-input" placeholder="Cover image URL (optional)">
+            </div>
+            <div class="form-group">
+                <input type="file" name="image" accept="image/*" class="form-input">
             </div>
             <button type="submit" class="btn btn-secondary" onclick="playSound()">Add Game</button>
         </form>
@@ -170,7 +177,7 @@
             <tr>
                 <td>
                     <div class="post-header" style="margin-bottom:0;">
-                        <div class="avatar-sm" style="{{ avatar_style(user) }}">{{ user.initials() }}</div>
+                        {{ avatar(user, 'sm') }}
                         <a href="{{ url_for('profile_view', user_id=user.id) }}" style="font-weight:600;">{{ user.display_name }}</a>
                         {% if user.is_admin %}<span class="admin-badge">ADMIN</span>{% endif %}
                     </div>

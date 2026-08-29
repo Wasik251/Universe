@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros.html" import avatar %}
 {% block title %}Music - UniVerse{% endblock %}
 {% block content %}
 <div class="section-header">
@@ -23,7 +24,7 @@
     {% for musician in musicians %}
     <div class="card music-card">
         <div class="music-header">
-            <div class="avatar-sm" style="{{ avatar_style(musician) }}">{{ musician.initials() }}</div>
+            {{ avatar(musician, 'sm') }}
             <div>
                 <a href="{{ url_for('profile_view', user_id=musician.id) }}" class="music-name">{{ musician.display_name }}</a>
                 <span class="text-muted">@{{ musician.username }}</span>

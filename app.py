@@ -1,9 +1,10 @@
 import os
 import json
 import re
+import io
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, g
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, g, abort, Response
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -12,7 +13,7 @@ load_dotenv()
 from models import (db, User, Post, PostLike, PostReaction, PostComment, ChatMessage, Movie, MovieReview, Watchlist, Game,
                     GameReview, UserGameLibrary, LfgPost, Department, Course,
                     AcademicNote, PastQuestion, MCQ, DiscussionThread, DiscussionReply, CourseFollow,
-                    FriendRequest, PrivateMessage)
+                    FriendRequest, PrivateMessage, Media)
 from seed import seed
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -28,12 +29,39 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SESSION_PERMANENT'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=30)
+app.config['MAX_CONTENT_LENGTH'] = 8 * 1024 * 1024
 
 db.init_app(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
+
+
+def _media_for(owner_type, owner_id):
+    if not hasattr(g, 'media_cache'):
+        g.media_cache = {}
+    key = (owner_type, owner_id)
+    if key not in g.media_cache:
+        g.media_cache[key] = Media.query.filter_by(owner_type=owner_type, owner_id=owner_id).first()
+    return g.media_cache[key]
+
+
+def _media_url(owner_type, owner_id):
+    m = _media_for(owner_type, owner_id)
+    return url_for('media', media_id=m.id) if m else ''
+
+
+app.jinja_env.globals['media_url'] = _media_url
+app.jinja_env.globals['has_media'] = lambda owner_type, owner_id: _media_for(owner_type, owner_id) is not None
+
+
+def _avatar_style(user):
+    c1, c2 = user.avatar_colors()
+    return f'background:linear-gradient(135deg,{c1},{c2});'
+
+
+app.jinja_env.globals['avatar_style'] = _avatar_style
 
 
 @login_manager.user_loader
@@ -52,6 +80,33 @@ def _run_migrations():
     except Exception as e:
         db.session.rollback()
         print('Migration warning:', e)
+
+
+def save_image(owner_type, owner_id, file_storage):
+    if not file_storage or not getattr(file_storage, 'filename', ''):
+        return None
+    data = file_storage.read()
+    if not data:
+        return None
+    mime = file_storage.mimetype or 'image/jpeg'
+    if not mime.startswith('image/'):
+        return None
+    Media.query.filter_by(owner_type=owner_type, owner_id=owner_id).delete()
+    media = Media(owner_type=owner_type, owner_id=owner_id, data=data, mime=mime)
+    db.session.add(media)
+    db.session.flush()
+    return media.id
+
+
+@app.route('/media/<int:media_id>')
+@login_required
+def media(media_id):
+    m = db.session.get(Media, media_id)
+    if not m:
+        abort(404)
+    resp = Response(m.data, mimetype=m.mime)
+    resp.headers['Cache-Control'] = 'public, max-age=86400'
+    return resp
 
 
 with app.app_context():
@@ -181,6 +236,8 @@ def create_post():
     if content:
         post = Post(user_id=current_user.id, content=content)
         db.session.add(post)
+        db.session.flush()
+        save_image('post', post.id, request.files.get('image'))
         db.session.commit()
     return redirect(url_for('feed'))
 
@@ -204,6 +261,7 @@ def like_post(post_id):
 def delete_post(post_id):
     post = db.session.get(Post, post_id)
     if post and (post.user_id == current_user.id or current_user.is_admin):
+        Media.query.filter_by(owner_type='post', owner_id=post_id).delete()
         db.session.delete(post)
         db.session.commit()
         flash('Post deleted', 'success')
@@ -271,9 +329,12 @@ def movies_add():
     description = request.form.get('description', '').strip()
     image_url = request.form.get('image_url', '').strip()
     if title:
-        db.session.add(Movie(title=title, release_year=release_year or 2025,
-                             genre=genre or 'Unknown', rating=rating,
-                             description=description, image_url=image_url))
+        movie = Movie(title=title, release_year=release_year or 2025,
+                      genre=genre or 'Unknown', rating=rating,
+                      description=description, image_url=image_url)
+        db.session.add(movie)
+        db.session.flush()
+        save_image('movie', movie.id, request.files.get('image'))
         db.session.commit()
         flash(f'Movie "{title}" added!', 'success')
     else:
@@ -345,8 +406,11 @@ def games_add():
     description = request.form.get('description', '').strip()
     image_url = request.form.get('image_url', '').strip()
     if title:
-        db.session.add(Game(title=title, genre=genre or 'Unknown', platform=platform or 'Any',
-                            rating=rating, description=description, image_url=image_url))
+        game = Game(title=title, genre=genre or 'Unknown', platform=platform or 'Any',
+                    rating=rating, description=description, image_url=image_url)
+        db.session.add(game)
+        db.session.flush()
+        save_image('game', game.id, request.files.get('image'))
         db.session.commit()
         flash(f'Game "{title}" added!', 'success')
     else:
@@ -756,8 +820,13 @@ def dm(user_id):
 def dm_send(user_id):
     friend = db.session.get(User, user_id)
     content = request.form.get('content', '').strip()
-    if friend and content and friend.id != current_user.id and current_user.friends.filter_by(id=friend.id).first():
-        db.session.add(PrivateMessage(sender_id=current_user.id, receiver_id=friend.id, content=content))
+    image = request.files.get('image')
+    has_img = image and getattr(image, 'filename', '')
+    if friend and (content or has_img) and friend.id != current_user.id and current_user.friends.filter_by(id=friend.id).first():
+        msg = PrivateMessage(sender_id=current_user.id, receiver_id=friend.id, content=content)
+        db.session.add(msg)
+        db.session.flush()
+        save_image('dm', msg.id, image)
         db.session.commit()
     return redirect(url_for('dm', user_id=user_id))
 
@@ -768,6 +837,7 @@ def dm_delete(message_id):
     msg = db.session.get(PrivateMessage, message_id)
     if msg and msg.sender_id == current_user.id:
         other = msg.receiver_id if msg.sender_id == current_user.id else msg.sender_id
+        Media.query.filter_by(owner_type='dm', owner_id=message_id).delete()
         db.session.delete(msg)
         db.session.commit()
         return redirect(url_for('dm', user_id=other))
@@ -779,6 +849,7 @@ def dm_delete(message_id):
 def profile_edit():
     current_user.display_name = request.form.get('display_name', '').strip() or current_user.username
     current_user.bio = request.form.get('bio', '').strip()
+    save_image('user', current_user.id, request.files.get('avatar'))
     db.session.commit()
     flash('Profile updated!', 'success')
     return redirect(url_for('profile'))
@@ -814,8 +885,13 @@ def chat():
 @login_required
 def chat_send():
     content = request.form.get('content', '').strip()
-    if content:
-        db.session.add(ChatMessage(user_id=current_user.id, content=content))
+    image = request.files.get('image')
+    has_img = image and getattr(image, 'filename', '')
+    if content or has_img:
+        msg = ChatMessage(user_id=current_user.id, content=content)
+        db.session.add(msg)
+        db.session.flush()
+        save_image('chat', msg.id, image)
         db.session.commit()
     return redirect(url_for('chat'))
 
@@ -915,8 +991,11 @@ def manage_add_movie():
     description = request.form.get('description', '').strip()
     image_url = request.form.get('image_url', '').strip()
     if title:
-        db.session.add(Movie(title=title, release_year=year or 0, genre=genre or 'Unknown',
-                             rating=rating, description=description, image_url=image_url))
+        movie = Movie(title=title, release_year=year or 0, genre=genre or 'Unknown',
+                      rating=rating, description=description, image_url=image_url)
+        db.session.add(movie)
+        db.session.flush()
+        save_image('movie', movie.id, request.files.get('image'))
         db.session.commit()
         flash(f'Movie "{title}" added!', 'success')
     return redirect(url_for('manage'))
@@ -930,6 +1009,7 @@ def manage_delete_movie(movie_id):
         return redirect(url_for('manage'))
     movie = db.session.get(Movie, movie_id)
     if movie:
+        Media.query.filter_by(owner_type='movie', owner_id=movie_id).delete()
         db.session.delete(movie)
         db.session.commit()
         flash(f'Movie "{movie.title}" deleted', 'success')
@@ -944,6 +1024,7 @@ def manage_delete_post(post_id):
         return redirect(url_for('manage'))
     post = db.session.get(Post, post_id)
     if post:
+        Media.query.filter_by(owner_type='post', owner_id=post_id).delete()
         db.session.delete(post)
         db.session.commit()
         flash('Post deleted', 'success')
@@ -999,8 +1080,11 @@ def manage_add_game():
     description = request.form.get('description', '').strip()
     image_url = request.form.get('image_url', '').strip()
     if title:
-        db.session.add(Game(title=title, genre=genre or 'Unknown', platform=platform or 'Unknown',
-                            rating=rating, description=description, image_url=image_url))
+        game = Game(title=title, genre=genre or 'Unknown', platform=platform or 'Unknown',
+                    rating=rating, description=description, image_url=image_url)
+        db.session.add(game)
+        db.session.flush()
+        save_image('game', game.id, request.files.get('image'))
         db.session.commit()
         flash(f'Game "{title}" added!', 'success')
     return redirect(url_for('manage'))
@@ -1014,6 +1098,7 @@ def manage_delete_game(game_id):
         return redirect(url_for('manage'))
     game = db.session.get(Game, game_id)
     if game:
+        Media.query.filter_by(owner_type='game', owner_id=game_id).delete()
         db.session.delete(game)
         db.session.commit()
         flash(f'Game "{game.title}" deleted', 'success')
@@ -1149,8 +1234,16 @@ def inject_globals():
         return post.reactions.filter_by(emoji=emoji).count()
 
     def avatar_style(user):
-        c1, c2 = user.avatar_colors()
-        return f'background:linear-gradient(135deg,{c1},{c2});'
+        return _avatar_style(user)
+
+    def media_for(owner_type, owner_id):
+        return _media_for(owner_type, owner_id)
+
+    def media_url(owner_type, owner_id):
+        return _media_url(owner_type, owner_id)
+
+    def has_media(owner_type, owner_id):
+        return _media_for(owner_type, owner_id) is not None
 
     def is_friend(user):
         if not current_user.is_authenticated or user is None or user.id == current_user.id:
@@ -1182,7 +1275,8 @@ def inject_globals():
             'reacted': reacted, 'avatar_style': avatar_style,
             'is_friend': is_friend, 'comment_count': comment_count,
             'comments_for': comments_for, 'react_count': react_count,
-            'friend_status': friend_status}
+            'friend_status': friend_status, 'media_url': media_url,
+            'has_media': has_media}
 
 
 if __name__ == '__main__':

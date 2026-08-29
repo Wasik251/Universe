@@ -1,0 +1,8 @@
+{% macro avatar(user, size='sm', classes='') %}
+{% set url = media_url('user', user.id) if user else '' %}
+{% if url %}
+<img src="{{ url }}" class="avatar-{{ size }} avatar-img {{ classes }}" alt="{{ user.display_name or user.username }}">
+{% else %}
+<div class="avatar-{{ size }} {{ classes }}" style="{{ avatar_style(user) }}">{{ user.initials() }}</div>
+{% endif %}
+{% endmacro %}

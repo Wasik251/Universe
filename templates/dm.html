@@ -17,6 +17,9 @@
                 </form>
                 {% endif %}
                 {{ msg.content }}
+                {% if has_media('dm', msg.id) %}
+                <img src="{{ media_url('dm', msg.id) }}" alt="Photo" class="chat-img" loading="lazy">
+                {% endif %}
                 <div class="chat-meta">{{ msg.created_at | timesince }}</div>
             </div>
         </div>
@@ -26,10 +29,15 @@
         </div>
         {% endfor %}
     </div>
-    <form method="post" action="{{ url_for('dm_send', user_id=friend.id) }}" class="chat-input-row">
-        <input type="text" name="content" class="form-input" placeholder="Type a message..." autocomplete="off" required>
+    <form method="post" action="{{ url_for('dm_send', user_id=friend.id) }}" enctype="multipart/form-data" class="chat-input-row">
+        <input type="text" name="content" class="form-input" placeholder="Type a message..." autocomplete="off">
+        <label class="chat-photo" title="Upload a photo">
+            🖼️
+            <input type="file" name="image" accept="image/*" class="hidden-input" id="dm-image-input">
+        </label>
         <button type="submit" class="btn btn-primary" onclick="playSound()">Send</button>
     </form>
+    <div class="chat-preview" id="dm-image-preview"></div>
 </div>
 {% endblock %}
 
@@ -37,6 +45,17 @@
 <script>
 const el = document.getElementById('dm-messages');
 if (el) { el.scrollTop = el.scrollHeight; }
+const dmImgInput = document.getElementById('dm-image-input');
+const dmImgPreview = document.getElementById('dm-image-preview');
+if (dmImgInput && dmImgPreview) {
+    dmImgInput.addEventListener('change', () => {
+        const f = dmImgInput.files[0];
+        if (!f) { dmImgPreview.innerHTML = ''; return; }
+        const reader = new FileReader();
+        reader.onload = (e) => { dmImgPreview.innerHTML = '<img src="' + e.target.result + '" alt="Photo preview">'; };
+        reader.readAsDataURL(f);
+    });
+}
 setInterval(() => {
     fetch(window.location.href, { headers: { 'Accept': 'text/html' } })
         .then(r => r.text())

@@ -1,3 +1,4 @@
+{% from "_macros.html" import avatar %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,7 +15,7 @@
             <div class="nav-right">
                 <a href="{{ url_for('assistant') }}" class="nav-pill nav-ai">🤖 AI</a>
                 <a href="{{ url_for('profile') }}" class="nav-profile-link" title="My Profile">
-                    <div class="avatar-xs" style="{{ avatar_style(current_user) }}">{{ current_user.initials() }}</div>
+                    {{ avatar(current_user, 'xs') }}
                 </a>
                 <a href="{{ url_for('logout') }}" class="nav-pill nav-logout" onclick="playSound()">Logout</a>
             </div>
